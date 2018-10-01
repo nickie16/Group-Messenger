@@ -9,7 +9,7 @@
 #include <errno.h>
 
 #define PORT 8080 
-#define SERVER_ADDR "127.0.0.1"
+#define SERVER_ADDR "192.168.56.101"
 #define USERNAME "nikmand"
 
 using std::cout;
@@ -23,7 +23,7 @@ class Client{
    private:
 	string ip, username, cur_group;
 	int port, id, sock, valread;
-	struct sockaddr_in serv_addr;
+	struct sockaddr_in serv_addr, client_addr;
    	char buffer[1024] = {0};
 
    public:	
@@ -43,6 +43,9 @@ class Client{
            serv_addr.sin_family = AF_INET;
            serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
            serv_addr.sin_port = htons(PORT);
+           //client_addr.sin_family = AF_INET;
+           //client_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
+           //client_addr.sin_port = htons(8081);
 	   rgstr();
   	   return 0;	
 	}
@@ -53,6 +56,7 @@ class Client{
                 cout << "\n Socket creation error \n";
                 return -1;
            }
+	   // client's socket gets binded to port dynamically 
 	   if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     	   {
 		cout << errno << endl;
@@ -64,9 +68,11 @@ class Client{
 
 	void rgstr(){
 		connectToServer();
-		string command = ip + ":" + std::to_string(port) + ":" + username;
+		string command = "!r " + ip + ":" + std::to_string(port) + ":" + username;
 		send(sock , command.c_str() , command.size() , 0 );
 		valread = read( sock , buffer, 1024);
+		cout << string(buffer, valread) << endl;
+		cout << valread << endl;
 	}
 	
 	void list_groups(){

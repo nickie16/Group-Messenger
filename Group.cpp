@@ -6,4 +6,6 @@ Group::Group(string group){
 
 }
 
-
+string Group::getName() {
+	return name;
+} 

@@ -17,6 +17,7 @@ class Group{
 	public:
 		Group(string group);
 		~Group();
+		string getName();
 };
 
 #endif
