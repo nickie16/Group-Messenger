@@ -28,6 +28,8 @@ class Server{
 	list<Group>::iterator it;
 	std::unordered_map<int, string> unmap;
 	int cnt = 0;
+	Client *t;
+	Group *g;
 
    public:
 	Server(){
@@ -58,7 +60,7 @@ class Server{
                 perror("listen");
                 exit(EXIT_FAILURE);
             }
-	    // maximum number of clients waiting to the queue 3, any new requests gets rejected
+	    // maximum number of clients waiting to the queue 5, any new requests gets rejected
 	}
 
 	void run(){
@@ -71,8 +73,8 @@ class Server{
                         exit(EXIT_FAILURE);
                 }
                 cout << "Connection established.." << endl;
-		cout << "Connected to: " << inet_ntoa(address.sin_addr) << endl;
-		cout << "Connection port" << address.sin_port << endl;
+		//cout << "Connected to: " << inet_ntoa(address.sin_addr) << endl;
+		//cout << "Connection port" << address.sin_port << endl;
                 if ((valread = read( new_socket , buffer, sizeof(buffer))) < 0) perror("read from remote peer failed");
                 string input = std::string(buffer, valread);
 		int pos = input.find(' ');
@@ -92,7 +94,6 @@ class Server{
 	} 
 
 	void rgstr(string aux){
-		cout << "We are on register..."  << endl;
 		int id = ++cnt;
 		std::pair<int,string> zeug (id, aux);
 		unmap.insert(zeug);
@@ -107,11 +108,23 @@ class Server{
 	}
 
 	void list_members(string group){
-
+            Group *g;
+	    cout << "we are here" << endl;
+            for(it = chatRooms.begin(); it != chatRooms.end(); it++)
+            {
+                if (it->getName() == group){
+                        g = &*it;
+			cout << "we have a match" << endl;
+			g->printMembers();
+			cout << g->getName() << endl;
+                        return;
+                }
+            }
+            cout << "There isn't any group named: " << group << endl;
 	}
 
 	void join_group(string group){
-	    Group *g;
+	    Group *g = new Group(group);
 	    for(it = chatRooms.begin(); it != chatRooms.end(); it++)
 	    {
 		if (it->getName() == group){ 
@@ -119,18 +132,22 @@ class Server{
 			break;
 		}
 	    }
-	    if (it == chatRooms.end()){	
-		   g = new Group(group);
-		   chatRooms.push_back(*g);
-	    }
+	    //TODO add user to group's member list
+	    t = new Client("127.0.0.1", 4340, "nikmand");	
+	    g->addMember(*t);
+	    g->printMembers();
+            if (it == chatRooms.end()){
+                   chatRooms.push_back(*g); //perna opws einai to group ekeinh th stigmh, to add meta den kratietai, epeidh pairnei reference 
+            }
+	    delete g;
 	}
 
 	void quit_group(string group){
-
+	    //TODO delete user from group members	
 	}
 
 	void quit(int id){
-
+	    //TODO delete id from unmap	
 	}
 	
 
