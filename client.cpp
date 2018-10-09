@@ -27,7 +27,8 @@ int main(int argc, char const *argv[])
 	//cout << "Specify arguments! 1. port and 2. username, default values are going to be used" << endl;
     }		
     Client *client = new Client("192.168.1.2", argc > 1 ? std::stoi(argv[1]) : PORT, argc > 2 ? argv[2] : USERNAME);
-    if ((i = client->init()) < 0) return i;
+    //if ((i = client->init()) < 0) return i;
+    client->rgstr();	
     cout << '>';
     getline(cin, input);
     while (input != "!q"){ 

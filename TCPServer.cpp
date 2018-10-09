@@ -9,6 +9,11 @@
 #include <unordered_map>
 #include "Group.h"
 #include <list>
+#include <sstream>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+// Provide an implementation of serialize for std::list
+#include <boost/serialization/list.hpp>
 
 #define PORT 8080
 
@@ -115,8 +120,17 @@ class Server{
                 if (it->getName() == group){
                         g = &*it;
 			cout << "we have a match" << endl;
-			g->printMembers();
-			cout << g->getName() << endl;
+			//g->printMembers();
+			list<string> nameList;
+		        std::stringstream touta;
+        		for (auto v : g->getMembers()){
+             			nameList.push_back(v.getUsername());
+        		}
+			cout << "List's size " << nameList.size() << endl; 
+	       		boost::archive::binary_oarchive oa(touta);
+			oa << nameList;
+			string tmp = touta.str(); 
+                        send(new_socket, tmp.c_str(), tmp.size(), 0);
                         return;
                 }
             }
@@ -128,6 +142,7 @@ class Server{
 	    for(it = chatRooms.begin(); it != chatRooms.end(); it++)
 	    {
 		if (it->getName() == group){ 
+			delete g;
 			g = &*it;
 			break;
 		}
@@ -139,7 +154,6 @@ class Server{
             if (it == chatRooms.end()){
                    chatRooms.push_back(*g); //perna opws einai to group ekeinh th stigmh, to add meta den kratietai, epeidh pairnei reference 
             }
-	    delete g;
 	}
 
 	void quit_group(string group){

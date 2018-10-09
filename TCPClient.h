@@ -24,7 +24,6 @@ class Client{
 	int id;
 	int sock;
 	int valread;
-	struct sockaddr_in serv_addr;
    	char buffer[1024] = {0};
 
    public:	
@@ -32,7 +31,8 @@ class Client{
 
 	~Client();
 	
-	ssize_t init();
+	//ssize_t init();
+
 	ssize_t connectToServer();
 
 	void rgstr();
@@ -53,7 +53,11 @@ class Client{
 	
 	void sendMessage(string msg);
 	
-   	string getUsername();
+	string getIp();
+   		
+	string getUsername();
+
+	int getPort();
 };
 
 #endif
