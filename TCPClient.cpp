@@ -14,7 +14,7 @@
 #include "TCPClient.h"
 
 #define PORT 8080 
-#define SERVER_ADDR "192.168.56.101"
+#define SERVER_ADDR "127.0.0.1"
 #define USERNAME "nikmand"
 
 using std::cout;
@@ -34,24 +34,20 @@ Client::~Client(){
 ;
 }
 
-/*
-ssize_t Client::init(){
+
+ssize_t Client::init(){ 
+//initialize of server's address should happens only once
    memset(&serv_addr, '0', sizeof(serv_addr));
    serv_addr.sin_family = AF_INET;
    serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
    serv_addr.sin_port = htons(PORT);
    rgstr();
    return 0;	
-}*/
+}
 	
 ssize_t Client::connectToServer()
 {
-   struct sockaddr_in serv_addr;
-   
-   memset(&serv_addr, '0', sizeof(serv_addr));
-   serv_addr.sin_family = AF_INET;
-   serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
-   serv_addr.sin_port = htons(PORT);
+   cout << "Entering connect" << endl;
    
    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
    {
@@ -66,10 +62,12 @@ ssize_t Client::connectToServer()
 	cout << "Connection Failed " << endl;
 	return -1;
    }
+   cout << "Exiting connect" << endl;
    return 0;	
 }
 
 void Client::rgstr(){
+	cout << "Entering rgstr" << endl;
 	connectToServer();
 	string command = "!r " + ip + ":" + std::to_string(port) + ":" + username;
 	send(sock , command.c_str() , command.size() , 0 );

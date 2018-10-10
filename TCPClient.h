@@ -24,6 +24,7 @@ class Client{
 	int id;
 	int sock;
 	int valread;
+	struct sockaddr_in serv_addr;
    	char buffer[1024] = {0};
 
    public:	
@@ -31,9 +32,9 @@ class Client{
 
 	~Client();
 	
-	//ssize_t init();
-
 	ssize_t connectToServer();
+
+	ssize_t init();
 
 	void rgstr();
 	

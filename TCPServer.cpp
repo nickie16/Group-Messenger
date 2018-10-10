@@ -157,7 +157,18 @@ class Server{
 	}
 
 	void quit_group(string group){
-	    //TODO delete user from group members	
+	    //TODO delete user from group members
+	    Group *g;	
+	    for(it = chatRooms.begin(); it != chatRooms.end(); it++)
+            {
+                if (it->getName() == group){
+                        g = &*it;
+			g->removeMember("nikmand");
+                        return;
+                }
+            }
+	    cout << "There isn't a group named: " << group << endl;
+	
 	}
 
 	void quit(int id){

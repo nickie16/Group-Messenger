@@ -9,7 +9,7 @@
 #include "TCPClient.h"
 
 #define PORT 8080 
-#define SERVER_ADDR "192.168.56.101"
+#define SERVER_ADDR "127.0.0.1"
 #define USERNAME "nikmand"
 
 using std::cout;
@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
     }		
     Client *client = new Client("192.168.1.2", argc > 1 ? std::stoi(argv[1]) : PORT, argc > 2 ? argv[2] : USERNAME);
     //if ((i = client->init()) < 0) return i;
-    client->rgstr();	
+    client->init();	
     cout << '>';
     getline(cin, input);
     while (input != "!q"){ 

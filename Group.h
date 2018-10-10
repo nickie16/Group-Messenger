@@ -22,6 +22,7 @@ class Group{
 		list<Client> getMembers();
 		void addMember(Client t);
 		void printMembers();
+		void removeMember(string name);
 };
 
 #endif

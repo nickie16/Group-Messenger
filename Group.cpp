@@ -21,6 +21,12 @@ void Group::addMember(Client t){
 	members.push_back(t);
 }
 
+void Group::removeMember(string name)
+{
+	auto is_ = [name](Client &t) { return t.getUsername() == name;};
+	members.remove_if(is_);
+}
+
 void Group::printMembers(){
 	std::cout << members.size() << std::endl;
 	for (auto v : members){
