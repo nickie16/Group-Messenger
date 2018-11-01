@@ -35,15 +35,16 @@ class Server{
 	int cnt = 0;
 	Client *t;
 	Group *g;
+	Server(){};
 
    public:
-	Server(){
-	
-	}
-	
-	~Server(){
-	
-	}
+        static Server& getInstance()
+        {
+            static Server instance; // Guaranteed to be destroyed. Instantiated on first use.
+            return instance;
+        }
+	Server(Server const&) = delete;
+	void operator=(Server const&) = delete; // we forbid the use of this function as Server is singleton
 
 	ssize_t init(){
 	    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -181,9 +182,9 @@ class Server{
 int main(int argc, char const *argv[]) 
 {
 
-	Server *server = new Server();
-	Group *group = new Group("nikmand");
-	server->init();
-	server->run(); 
+	Server& server = Server::getInstance();
+	Group *group = new Group("nikmand"); // is that needed ?
+	server.init();
+	server.run(); 
    	return 0; 
 }
