@@ -1,19 +1,19 @@
-#include <stdio.h> 
+#include <cstdio>
 #include <unistd.h>
-#include <sys/socket.h> 
-#include <stdlib.h> 
-#include <netinet/in.h> 
-#include <string.h>
+#include <sys/socket.h>
+#include <cstdlib>
+#include <netinet/in.h>
+#include <cstring>
 #include <arpa/inet.h>
 #include <iostream>
 #include <list>
 #include <sstream>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/list.hpp>
-#include <boost/algorithm/string/predicate.hpp> 
+#include <boost/algorithm/string/predicate.hpp>
 #include "TCPClient.h"
 
-#define PORT 8080 
+#define PORT 8080
 #define SERVER_ADDR "127.0.0.1"
 #define USERNAME "nikmand"
 
@@ -23,110 +23,116 @@ using std::endl;
 using std::string;
 using std::getline;
 
-	
-Client::Client(string ip_addr, int netport, string name){
-   ip = ip_addr;
-   port = netport;
-   username = name;
+
+Client::Client(string ip_addr, int netport, string name) {
+    ip = ip_addr;
+    port = netport;
+    username = name;
 }
 
-Client::~Client(){
-;
+Client::~Client() {
+    ;
 }
 
 
-ssize_t Client::init(){ 
-//initialize of server's address should happens only once
-   memset(&serv_addr, '0', sizeof(serv_addr));
-   serv_addr.sin_family = AF_INET;
-   serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
-   serv_addr.sin_port = htons(PORT);
-   rgstr();
-   return 0;	
+ssize_t Client::init() {
+    //initialize of client's address should happens only once
+    cout << "Initializing Client" << endl;
+
+    memset(&serv_addr, '0', sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
+    serv_addr.sin_port = htons(PORT);
+    registerToServer();
+    return 0;
 }
-	
-ssize_t Client::connectToServer()
-{
-   cout << "Entering connect" << endl;
-   
-   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-   {
+
+ssize_t Client::connectToServer() {
+    cout << "Starting connect" << endl;
+
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         cout << "Socket creation error " << endl;
         return -1;
-   }
+    }
 
-   // client's socket gets binded to port dynamically 
-   if (connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-   {
-	cout << errno << endl;
-	cout << "Connection Failed " << endl;
-	return -1;
-   }
-   cout << "Exiting connect" << endl;
-   return 0;	
+    // client's socket gets bound to port dynamically
+    if (connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+        cout << errno << endl;
+        cout << "Connection Failed " << endl;
+        return -1;
+    }
+
+    cout << "Connection Achieved" << endl;
+    return 0;
 }
 
-void Client::rgstr(){
-	cout << "Entering rgstr" << endl;
-	connectToServer();
-	string command = "!r " + ip + ":" + std::to_string(port) + ":" + username;
-	send(sock , command.c_str() , command.size() , 0 );
-	valread = read( sock , buffer, 1024);
-	id =  std::stoi(string(buffer, valread));
+void Client::registerToServer() {
+    cout << "Attempt to register on Server" << endl;
+    connectToServer();
+    string command = "!r " + ip + ":" + std::to_string(port) + ":" + username;
+    send(sock, command.c_str(), command.size(), 0);
+    valread = read(sock, buffer, 1024);
+    id = std::stoi(string(buffer, valread));
+    cout << "Succesfully registed to Server. Acquired id: " << id << endl;
 }
 
-void Client::list_groups(){
+void Client::list_groups(string reply) {
+    std::stringstream out;
+    out.str(reply);
+    std::list<string> newlist;
+    boost::archive::binary_iarchive ia(out);
+    ia >> newlist;
+    for (auto v: newlist) {
+        cout << v << endl;
+    }
+    if (newlist.size() == 0) {
+        cout << "No groups have been created so far" << endl;
+    }
 }
 
-void Client::list_members(string group_name){
+void Client::list_members(string group_name) {
 }
 
-void Client::join_group(string group_name){
+void Client::join_group(string group_name) {
 }
 
-void Client::quit_group(string group_name){
+void Client::quit_group(string group_name) {
 }
 
-void Client::quit(){
-   cout << id << endl;
+void Client::quit() {
+    cout << id << endl;
 }
 
-void Client::set_group(string group_name){
-	cur_group = group_name;
+void Client::set_group(string group_name) {
+    cur_group = group_name;
 }
 
-void Client::sendCommand(string input){
-	connectToServer();
-	send(sock ,input.c_str(), input.size() ,0);
-        valread = read(sock ,buffer , 1024);
-	string tmp = string(buffer, valread);
-	if (boost::starts_with(input,"!lm")){
-	   std::stringstream out;
-	   out.str(tmp);
-	   std::list<string> newlist;
-     	   boost::archive::binary_iarchive ia(out);
-    	   ia >> newlist;
-	   for (auto v: newlist)
-		cout << v << endl;
-	}
-	else 
-	   cout << tmp << endl;
+void Client::sendCommand(string input) {
+
+    cout << "Start sending command" << endl;
+    connectToServer();
+    send(sock, input.c_str(), input.size(), 0);
+    valread = read(sock, buffer, 1024);
+    string tmp = string(buffer, valread);
+    if (boost::starts_with(input, "!lg")) {
+        list_groups(tmp);
+    } else
+        cout << tmp << endl;
 }
 
-void Client::sendMessage(string msg){
+void Client::sendMessage(string msg) {
 
+    cout << "Start sending message" << endl;
 }
 
-string Client::getIp(){
-   return ip;	
-}	
-
-string Client::getUsername(){
-   return username;
-}	
-
-int Client::getPort(){
-   return port;
+string Client::getIp() {
+    return ip;
 }
 
+string Client::getUsername() {
+    return username;
+}
 
+int Client::getPort() {
+    return port;
+}

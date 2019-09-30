@@ -36,9 +36,9 @@ class Client{
 
 	ssize_t init();
 
-	void rgstr();
+	void registerToServer();
 	
-	void list_groups();
+	void list_groups(string reply);
 
 	void list_members(string group_name);
 
