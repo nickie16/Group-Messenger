@@ -2,63 +2,67 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <netinet/in.h>
-#include <string.h>
+#include <cstring>
 #include <arpa/inet.h>
 #include <iostream>
-#include <errno.h>
+#include <cerrno>
+//#include "Group.h"
+class Group;
 
 using std::string;
 
-class Client{
+class Client {
 
-   private:
-	string ip;
-	string username;
-	string cur_group;
-	int port;
-	int id;
-	int sock;
-	int valread;
-	struct sockaddr_in serv_addr;
-   	char buffer[1024] = {0};
+private:
+    string ip;
+    string username;
+    int port;
+    int id;
+    int sock;
+    int valread;
+    Group *currentGroup;
+    struct sockaddr_in serv_addr;
+    char buffer[1024] = {0};
 
-   public:	
-	Client(string ip_addr, int netport, string name);
+public:
+    Client(string ip_addr, int netport, string name);
 
-	~Client();
-	
-	ssize_t connectToServer();
+    ~Client();
 
-	ssize_t init();
+    string getIp();
 
-	void registerToServer();
-	
-	void list_groups(string reply);
+    string getUsername();
 
-	void list_members(string group_name);
+    int getPort();
 
-	void join_group(string group_name);
+    ssize_t connectToServer();
 
-	void quit_group(string group_name);
+    ssize_t init();
 
-	void quit();
+    void registerToServer();
 
-	void set_group(string group_name);
+    static void list_groups(string reply);
 
-	void sendCommand(string input);
-	
-	void sendMessage(string msg);
-	
-	string getIp();
-   		
-	string getUsername();
+    void list_members(string group_name);
 
-	int getPort();
+    void join_group(string group_name);
+
+    void quit_group(string group_name);
+
+    void quit();
+
+    void set_group(Group *group_name);
+
+    void sendCommand(string input);
+
+    void sendMessage(string msg);
+
+    // send to client method? will it be useful?
 };
 
 #endif

@@ -13,6 +13,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include "TCPClient.h"
 
+
 #define PORT 8080
 #define SERVER_ADDR "127.0.0.1"
 #define USERNAME "nikmand"
@@ -22,7 +23,16 @@ using std::cin;
 using std::endl;
 using std::string;
 using std::getline;
+using std::list;
 
+list<string> deserialize_list(string reply){
+    std::stringstream out;
+    out.str(reply);
+    list<string> newlist;
+    boost::archive::binary_iarchive ia(out);
+    ia >> newlist;
+    return newlist;
+}
 
 Client::Client(string ip_addr, int netport, string name) {
     ip = ip_addr;
@@ -77,23 +87,28 @@ void Client::registerToServer() {
 }
 
 void Client::list_groups(string reply) {
-    std::stringstream out;
-    out.str(reply);
-    std::list<string> newlist;
-    boost::archive::binary_iarchive ia(out);
-    ia >> newlist;
-    for (auto v: newlist) {
-        cout << v << endl;
-    }
-    if (newlist.size() == 0) {
+    std::list<string> groupNames = deserialize_list(std::move(reply));
+    if (groupNames.empty()) {
         cout << "No groups have been created so far" << endl;
+    } else {
+        for (const auto& groupName: groupNames) {
+            cout << groupName << endl;
+        }
     }
 }
 
-void Client::list_members(string group_name) {
+void Client::list_members(string reply) {
+    std::list<string> memberNames = deserialize_list(reply);
+    if (memberNames.empty()) {
+        cout << "This group doesn't contain any member" << endl;
+    } else {
+        for (const auto& memberName: memberNames) {
+            cout << memberName << endl;
+        }
+    }
 }
 
-void Client::join_group(string group_name) {
+void Client::join_group(string groupObject) { // TODO the whole group object is returned
 }
 
 void Client::quit_group(string group_name) {
@@ -103,8 +118,8 @@ void Client::quit() {
     cout << id << endl;
 }
 
-void Client::set_group(string group_name) {
-    cur_group = group_name;
+void Client::set_group(Group *group_name) {
+    currentGroup = group_name;
 }
 
 void Client::sendCommand(string input) {
@@ -121,7 +136,7 @@ void Client::sendCommand(string input) {
 }
 
 void Client::sendMessage(string msg) {
-
+    // TODO broadcast to all members of current group
     cout << "Start sending message" << endl;
 }
 
@@ -136,3 +151,5 @@ string Client::getUsername() {
 int Client::getPort() {
     return port;
 }
+
+

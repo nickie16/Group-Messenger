@@ -2,6 +2,7 @@
 #ifndef GROUP_H
 #define GROUP_H
 
+class Group; // forward declaration
 #include <iostream>
 #include <string>
 #include <list>
@@ -10,19 +11,25 @@
 using std::list;
 using std::string;
 
-class Group{
+class Group {
 
-	private:
-		string name;
-		list<Client> members;
-	public:
-		Group(string group);
-		~Group();
-		string getName();
-		list<Client> getMembers();
-		void addMember(Client t);
-		void printMembers();
-		void removeMember(string name);
+private:
+    string name;
+    list<Client> members;
+public:
+    Group(string group);
+
+    ~Group();
+
+    string getName();
+
+    list<Client> getMembers();
+
+    void addMember(Client t);
+
+    void printMembers();
+
+    void removeMember(string name);
 };
 
 #endif

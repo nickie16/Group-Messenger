@@ -11,6 +11,7 @@
 #include <list>
 #include <sstream>
 #include <boost/archive/binary_oarchive.hpp>
+#include "Constants.h"
 #include <boost/archive/binary_iarchive.hpp>
 // Provide an implementation of serialize for std::list
 #include <boost/serialization/list.hpp>
@@ -21,6 +22,13 @@ using std::list;
 using std::cout;
 using std::endl;
 using std::string;
+
+string serialize_list(list<string> slist){
+    std::stringstream nameListStream;
+    boost::archive::binary_oarchive oa(nameListStream);
+    oa << slist;
+    return nameListStream.str();
+}
 
 class Server {
 
@@ -70,7 +78,6 @@ public:
 
     void run() {
         while (true) {
-            char *hello = "hello world";
             cout << "Waiting for an incoming connection..." << endl;
             if ((new_socket = accept(sockfd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
                 perror("accept");
@@ -78,7 +85,8 @@ public:
             }
             cout << "Connection established.." << endl;
             cout << "Connected to: " << inet_ntoa(address.sin_addr) << endl;
-            cout << "Connection port" << address.sin_port << endl;
+            cout << "Connection port: " << address.sin_port << endl;
+            // because comminication is sychronous we respond right away to the correct client using new_socket
             if ((valread = read(new_socket, buffer, sizeof(buffer))) < 0) {
                 perror("read from remote peer failed");
             }
@@ -88,7 +96,7 @@ public:
             string group_name = input.substr(pos + 1);
             cout << "Command received was: "  << input << endl;
             // TODO command codes should be moved as constants in another file
-            if (cmd == "!lg")
+            if (cmd == LIST_GROUPS)
                 list_groups();
             else if (cmd == "!lm")
                 list_members(group_name);
@@ -98,8 +106,7 @@ public:
                 registerClient(group_name);
             else if (cmd == "!e")
                 quit_group(group_name);
-            //send(new_socket , hello , strlen(hello) , 0 );
-            cout << "Reply sent" << endl;
+           // cout << "Reply sent" << endl;
             if (close(new_socket) < 0) // closing the tcp connection
                 perror("close");
             cout << "Connection closed" << endl;
@@ -115,37 +122,29 @@ public:
         send(new_socket, ids.c_str(), ids.size(), 0);
     }
 
-    void list_groups() { // TODO we should send a list of strings with the group names on it
-        //string aux = "groups: ";
+    void list_groups() {
         list<string> nameList;
-        std::stringstream nameListStream;
         for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
             nameList.push_back(it->getName());
-            //aux += "[" + it->getName() + "] ";
         }
-        boost::archive::binary_oarchive oa(nameListStream);
-        oa << nameList;
-        string nameListSerialized = nameListStream.str();
+        string nameListSerialized = serialize_list(nameList);
         send(new_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
     }
 
     void list_members(string groupName) {
         Group *group;
-        cout << "we are here" << endl;
+        cout << "Searching if requested group exists" << endl;
         for (it = chatRooms.begin(); it != chatRooms.end(); it++) { //TODO check why auto instead of iterator
             if (it->getName() == groupName) {
                 group = &*it;
-                cout << "we have a match" << endl;
+                cout << "Requested group found" << endl;
                 //g->printMembers();
                 list<string> nameList;
-                std::stringstream nameListStream;
                 for (auto v : group->getMembers()) {
                     nameList.push_back(v.getUsername());
                 }
                 cout << "Number of members on the requested group: " << nameList.size() << endl;
-                boost::archive::binary_oarchive oa(nameListStream);
-                oa << nameList;
-                string nameListSerialized = nameListStream.str();
+                string nameListSerialized = serialize_list(nameList);
                 send(new_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
                 return;
             }
@@ -154,15 +153,19 @@ public:
     }
 
     void join_group(string groupName) {
-        Group *group = new Group(groupName);
+        Group *group = nullptr;
+        bool groupFound = false;
         for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
             if (it->getName() == groupName) {
-                delete group;
+                groupFound = true;
                 group = &*it;
                 break;
             }
         }
-        //TODO add user to groupName's member list
+        if(!groupFound){
+            group = new Group(groupName);
+        }
+        //TODO add user with correct ip:port:username to group's member list
         t = new Client("127.0.0.1", 4340, "nikmand");
         group->addMember(*t);
         group->printMembers();
@@ -178,7 +181,7 @@ public:
         for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
             if (it->getName() == groupName) {
                 group = &*it;
-                group->removeMember("nikmand");
+                group->removeMember("nikmand"); // TODO use correct username
                 return;
             }
         }

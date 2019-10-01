@@ -1,10 +1,4 @@
-#include <cstdio>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <cstdlib>
-#include <netinet/in.h>
-#include <cstring>
-#include <arpa/inet.h>
 #include <iostream>
 #include "TCPClient.h"
 
@@ -28,6 +22,10 @@ using std::getline;
 //    logging::add_common_attributes();
 //}
 
+void check_input(string input){
+    return ;
+}
+
 int main(int argc, char const *argv[]) {
     string input;
     ssize_t i;
@@ -41,17 +39,18 @@ int main(int argc, char const *argv[]) {
     cout << '>';
     getline(cin, input);
     while (input != "!q") {
-        if (input.find('!') == 0) {
-            int pos = input.find(' ');
-            string cmd = input.substr(0, pos);
-            string group_name = input.substr(pos + 1);
+        // check_input(input); // TODO validate input
+        if (input .find('!') == 0) { //  boost::starts_with(input,'!')
+            // int pos = input.find(' ');
+            // string cmd = input.substr(0, pos);
+            // string group_name = input.substr(pos + 1);
+            cout << "Command Mode..." << endl;
             client->sendCommand(input);
             /*if (cmd =="!lg") client->list_groups();
             else if (cmd == "!lm") client->list_members(group_name);
             else if (cmd == "!j")  client->join_group(group_name);
             else if (cmd == "!w")  client->set_group(group_name);
             else if (cmd == "!e")  client->quit_group(group_name);*/
-            cout << "Command Mode..." << endl;
         } else {
             client->sendMessage(input);
         }
