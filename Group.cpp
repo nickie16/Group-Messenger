@@ -1,10 +1,12 @@
 #include "Group.h"
+
+#include <utility>
 //#include "TCPClient.h"
 
 using std::endl;
 
 Group::Group(string group){
-	name = group;
+	name = std::move(group);
 }
 
 Group::~Group(){
@@ -19,13 +21,13 @@ list<Client> Group::getMembers(){
 	return members;
 }
 
-void Group::addMember(Client t){
+void Group::addMember(const Client& t){
 	members.push_back(t);
 }
 
-void Group::removeMember(string name) // TODO check const reference
+void Group::removeMember(const string& member_name)
 {
-	auto is_ = [name](Client &t) { return t.getUsername() == name;};
+	auto is_ = [member_name](Client &t) { return t.getUsername() == member_name;};
 	members.remove_if(is_);
 }
 

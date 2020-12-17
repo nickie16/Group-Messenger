@@ -8,3 +8,6 @@ server: TCPServer.cpp Group.cpp TCPClient.cpp
 client: TCPClient.cpp client.cpp
 	g++ $(FLAGS) client.cpp TCPClient.cpp -lboost_serialization -o client
 
+clean:
+	rm server client
+

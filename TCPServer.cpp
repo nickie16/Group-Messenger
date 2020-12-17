@@ -11,19 +11,18 @@
 #include <list>
 #include <sstream>
 #include <boost/archive/binary_oarchive.hpp>
-#include "Constants.h"
+//#include "Constants.h"
 #include <boost/archive/binary_iarchive.hpp>
-// Provide an implementation of serialize for std::list
-#include <boost/serialization/list.hpp>
+#include <boost/serialization/list.hpp> // Provides an implementation of serialize for std::list
 
-#define PORT 8080
+#define PORT 8091
 
 using std::list;
 using std::cout;
 using std::endl;
 using std::string;
 
-string serialize_list(list<string> slist){
+string serialize_list(const list<string>& slist){
     std::stringstream nameListStream;
     boost::archive::binary_oarchive oa(nameListStream);
     oa << slist;
@@ -37,10 +36,10 @@ private:
     char buffer[1024] = {0};
     struct sockaddr_in address;
     int addrlen = sizeof(address);
-    list<Group> chatRooms;
-    list<Group>::iterator it;
+    list<Group*> chatRooms;
+    list<Group*>::iterator it;
     std::unordered_map<int, string> unmap;
-    int cnt = 0;
+    int num_of_clients = 0;
     Client *t;
     Group *g;
 
@@ -56,67 +55,85 @@ public:
 
     void operator=(Server const &) = delete; // we forbid the use of this function as Server is singleton
 
-    ssize_t init() {
-        cout << "Initializing Server" << endl;
+    void init() {
+
+        cout << "Initializing our Server" << endl;
+
         if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
             perror("socket failed");
             exit(EXIT_FAILURE);
         }
+
         address.sin_family = AF_INET;
-        address.sin_addr.s_addr = INADDR_ANY; //inet_addr("127.0.0.1");
+        address.sin_addr.s_addr = inet_addr("127.0.0.1"); //INADDR_ANY; //
         address.sin_port = htons(PORT);
+
         // Forcefully attaching socket to the port 8080
         if (bind(sockfd, (struct sockaddr *) &address, sizeof(address)) < 0) {
             perror("bind failed");
             exit(EXIT_FAILURE);
         }
+
         if (listen(sockfd, 5) < 0) { // maximum number of clients waiting to the queue 5, any new requests gets rejected
-            perror("listen");
+            perror("listen failed");
             exit(EXIT_FAILURE);
         }
+
+        cout << "Initialization finished" << endl;
     }
 
     void run() {
         while (true) {
             cout << "Waiting for an incoming connection..." << endl;
+
             if ((new_socket = accept(sockfd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
-                perror("accept");
+                perror("accept failed");
                 exit(EXIT_FAILURE);
             }
             cout << "Connection established.." << endl;
             cout << "Connected to: " << inet_ntoa(address.sin_addr) << endl;
             cout << "Connection port: " << address.sin_port << endl;
-            // because comminication is sychronous we respond right away to the correct client using new_socket
+
+            // because communication is synchronous we respond right away to the correct client using new_socket
             if ((valread = read(new_socket, buffer, sizeof(buffer))) < 0) {
                 perror("read from remote peer failed");
             }
+
             string input = std::string(buffer, valread);
             int pos = input.find(' ');
             string cmd = input.substr(0, pos);
-            string group_name = input.substr(pos + 1);
+            string param = input.substr(pos + 1);
             cout << "Command received was: "  << input << endl;
+            // TODO use switch command
             // TODO command codes should be moved as constants in another file
-            if (cmd == LIST_GROUPS)
+            // TODO implement leave client command
+            if (cmd == "!lg")
                 list_groups();
             else if (cmd == "!lm")
-                list_members(group_name);
+                list_members(param);
             else if (cmd == "!j")
-                join_group(group_name);
+                join_group(param);
             else if (cmd == "!r")
-                registerClient(group_name);
+                registerClient(param);
             else if (cmd == "!e")
-                quit_group(group_name);
+                quit_group(param);
+            else
+                ; // TODO implement unsupported command
            // cout << "Reply sent" << endl;
-            if (close(new_socket) < 0) // closing the tcp connection
+
+            // closing the tcp connection as it is expensive to maintain
+            if (close(new_socket) < 0) {
                 perror("close");
+            }
             cout << "Connection closed" << endl;
         }
     }
 
-    void registerClient(string aux) { // TODO rename aux
+    void registerClient(const string& client_info) {
         cout << "Registering new Client" << endl;
-        int id = ++cnt;
-        std::pair<int, string> pair(id, aux);
+
+        int id = ++num_of_clients;
+        std::pair<int, string> pair(id, client_info);
         unmap.insert(pair);
         string ids = std::to_string(id);
         send(new_socket, ids.c_str(), ids.size(), 0);
@@ -125,67 +142,68 @@ public:
     void list_groups() {
         list<string> nameList;
         for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
-            nameList.push_back(it->getName());
+            nameList.push_back((*it)->getName());
         }
         string nameListSerialized = serialize_list(nameList);
         send(new_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
     }
 
-    void list_members(string groupName) {
+    void list_members(const string& groupName) {
         Group *group;
-        cout << "Searching if requested group exists" << endl;
-        for (it = chatRooms.begin(); it != chatRooms.end(); it++) { //TODO check why auto instead of iterator
-            if (it->getName() == groupName) {
-                group = &*it;
-                cout << "Requested group found" << endl;
-                //g->printMembers();
-                list<string> nameList;
-                for (auto v : group->getMembers()) {
-                    nameList.push_back(v.getUsername());
-                }
-                cout << "Number of members on the requested group: " << nameList.size() << endl;
-                string nameListSerialized = serialize_list(nameList);
-                send(new_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
-                return;
+
+        group = find_group(groupName);
+        if (group){
+            list<string> nameList;
+            for (auto v : group->getMembers()) {
+                nameList.push_back(v.getUsername());
             }
+            cout << "Number of members on the requested group: " << nameList.size() << endl;
+            string nameListSerialized = serialize_list(nameList);
+            send(new_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
         }
-        cout << "There isn't any group named: " << groupName << endl;
+        // TODO else reply group not present
     }
 
-    void join_group(string groupName) {
-        Group *group = nullptr;
-        bool groupFound = false;
-        for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
-            if (it->getName() == groupName) {
-                groupFound = true;
-                group = &*it;
-                break;
-            }
-        }
-        if(!groupFound){
+    void join_group(const string& groupName) {
+        Group *group;
+
+        group = find_group(groupName);
+        if (!group){
             group = new Group(groupName);
+            chatRooms.push_back(group);
+            // issue - perna opws einai to group ekeinh th stigmh, to add meta den kratietai, epeidh pairnei reference
         }
+
         //TODO add user with correct ip:port:username to group's member list
         t = new Client("127.0.0.1", 4340, "nikmand");
         group->addMember(*t);
         group->printMembers();
-        if (it == chatRooms.end()) {
-            chatRooms.push_back(*group);
-            //perna opws einai to group ekeinh th stigmh, to add meta den kratietai, epeidh pairnei reference
+    }
+
+    void quit_group(const string& groupName) {
+        Group *group;
+
+        group = find_group(groupName);
+        if (group){
+            group->removeMember("nikmand"); // TODO use correct username
         }
     }
 
-    void quit_group(string groupName) {
-        //TODO delete user from group members
-        Group *group;
-        for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
-            if (it->getName() == groupName) {
-                group = &*it;
-                group->removeMember("nikmand"); // TODO use correct username
-                return;
+    Group* find_group(const string& groupName){
+        Group *group = nullptr;
+        cout << "Searching if requested group exists" << endl;
+
+        for (it = chatRooms.begin(); it != chatRooms.end(); it++) { //TODO check why auto instead of iterator
+            if ((*it)->getName() == groupName) {
+                cout << "Requested group found" << endl;
+
+                group = (*it);
+                return group;
             }
         }
-        cout << "There isn't a group named: " << groupName << endl;
+
+        cout << "There isn't any group named: " << groupName << endl;
+        return group;
     }
 
     void quit(int id) {
@@ -195,6 +213,7 @@ public:
 
 int main(int argc, char const *argv[]) {
 
+    cout << "Main starts" << endl;
     Server &server = Server::getInstance();
     //Group *group = new Group("nikmand"); // is that needed ?
     server.init();

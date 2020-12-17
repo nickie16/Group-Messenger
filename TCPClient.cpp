@@ -14,7 +14,7 @@
 #include "TCPClient.h"
 
 
-#define PORT 8080
+#define PORT 8091
 #define SERVER_ADDR "127.0.0.1"
 #define USERNAME "nikmand"
 
@@ -83,7 +83,7 @@ void Client::registerToServer() {
     send(sock, command.c_str(), command.size(), 0);
     valread = read(sock, buffer, 1024);
     id = std::stoi(string(buffer, valread));
-    cout << "Succesfully registed to Server. Acquired id: " << id << endl;
+    cout << "Successfully registered to Server. Acquired id: " << id << endl;
 }
 
 void Client::list_groups(string reply) {
@@ -98,7 +98,7 @@ void Client::list_groups(string reply) {
 }
 
 void Client::list_members(string reply) {
-    std::list<string> memberNames = deserialize_list(reply);
+    std::list<string> memberNames = deserialize_list(std::move(reply));
     if (memberNames.empty()) {
         cout << "This group doesn't contain any member" << endl;
     } else {
@@ -108,13 +108,14 @@ void Client::list_members(string reply) {
     }
 }
 
-void Client::join_group(string groupObject) { // TODO the whole group object is returned
+void Client::join_group(const string& groupObject) { // TODO the whole group object is returned
 }
 
-void Client::quit_group(string group_name) {
+void Client::quit_group(const string& group_name) {
 }
 
 void Client::quit() {
+    // TODO implement
     cout << id << endl;
 }
 
@@ -122,17 +123,26 @@ void Client::set_group(Group *group_name) {
     currentGroup = group_name;
 }
 
-void Client::sendCommand(string input) {
+
+
+void Client::sendCommand(const string& input) {
 
     cout << "Start sending command" << endl;
     connectToServer();
     send(sock, input.c_str(), input.size(), 0);
     valread = read(sock, buffer, 1024);
-    string tmp = string(buffer, valread);
+    string reply = string(buffer, valread);
+
+
+    // TODO implement for all possible commands
     if (boost::starts_with(input, "!lg")) {
-        list_groups(tmp);
-    } else
-        cout << tmp << endl;
+        list_groups(reply);
+    }
+    else if (boost::starts_with(input, "!lm")) {
+        list_members(reply);
+    }
+    else
+        cout << reply << endl;
 }
 
 void Client::sendMessage(string msg) {

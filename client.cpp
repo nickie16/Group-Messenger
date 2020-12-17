@@ -40,7 +40,7 @@ int main(int argc, char const *argv[]) {
     getline(cin, input);
     while (input != "!q") {
         // check_input(input); // TODO validate input
-        if (input .find('!') == 0) { //  boost::starts_with(input,'!')
+        if (input.find('!') == 0) { //  boost::starts_with(input,'!')
             // int pos = input.find(' ');
             // string cmd = input.substr(0, pos);
             // string group_name = input.substr(pos + 1);

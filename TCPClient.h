@@ -50,15 +50,15 @@ public:
 
     void list_members(string group_name);
 
-    void join_group(string group_name);
+    void join_group(const string& group_name);
 
-    void quit_group(string group_name);
+    void quit_group(const string& group_name);
 
     void quit();
 
     void set_group(Group *group_name);
 
-    void sendCommand(string input);
+    void sendCommand(const string& input);
 
     void sendMessage(string msg);
 

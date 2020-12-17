@@ -17,7 +17,7 @@ private:
     string name;
     list<Client> members;
 public:
-    Group(string group);
+    explicit Group(string group);
 
     ~Group();
 
@@ -25,11 +25,11 @@ public:
 
     list<Client> getMembers();
 
-    void addMember(Client t);
+    void addMember(const Client& t);
 
     void printMembers();
 
-    void removeMember(string name);
+    void removeMember(const string& member_name);
 };
 
 #endif
