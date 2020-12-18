@@ -11,6 +11,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/list.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <utility>
 #include "TCPClient.h"
 
 
@@ -25,7 +26,7 @@ using std::string;
 using std::getline;
 using std::list;
 
-list<string> deserialize_list(string reply){
+list<string> deserialize_list(const string& reply){
     std::stringstream out;
     out.str(reply);
     list<string> newlist;
@@ -35,9 +36,9 @@ list<string> deserialize_list(string reply){
 }
 
 Client::Client(string ip_addr, int netport, string name) {
-    ip = ip_addr;
+    ip = std::move(ip_addr);
     port = netport;
-    username = name;
+    username = std::move(name);
 }
 
 Client::~Client() {
@@ -49,7 +50,7 @@ ssize_t Client::init() {
     //initialize of client's address should happens only once
     cout << "Initializing Client" << endl;
 
-    memset(&serv_addr, '0', sizeof(serv_addr));
+    memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
     serv_addr.sin_port = htons(PORT);
@@ -86,8 +87,34 @@ void Client::registerToServer() {
     cout << "Successfully registered to Server. Acquired id: " << id << endl;
 }
 
-void Client::list_groups(string reply) {
-    std::list<string> groupNames = deserialize_list(std::move(reply));
+void Client::sendCommand(const string& input) {
+
+    cout << "Start sending command" << endl;
+    connectToServer();
+    // TODO send also ID
+    send(sock, input.c_str(), input.size(), 0);
+    valread = read(sock, buffer, 1024);
+    string reply = string(buffer, valread);
+
+    // TODO implement for all possible commands
+    if (boost::starts_with(input, "!lg")) {
+        list_groups(reply);
+    }
+    else if (boost::starts_with(input, "!lm")) {
+        list_members(reply);
+    }
+    else if (boost::starts_with(input, "!j")) {
+        join_group(reply);
+    }
+    else if (boost::starts_with(input, "!e")) {
+        exit_group(reply);
+    }
+    else
+        cout << reply << endl;
+}
+
+void Client::list_groups(const string& reply) {
+    std::list<string> groupNames = deserialize_list(reply);
     if (groupNames.empty()) {
         cout << "No groups have been created so far" << endl;
     } else {
@@ -97,21 +124,27 @@ void Client::list_groups(string reply) {
     }
 }
 
-void Client::list_members(string reply) {
-    std::list<string> memberNames = deserialize_list(std::move(reply));
-    if (memberNames.empty()) {
-        cout << "This group doesn't contain any member" << endl;
-    } else {
-        for (const auto& memberName: memberNames) {
-            cout << memberName << endl;
+void Client::list_members(const string& reply) {
+    try {
+        std::list<string> memberNames = deserialize_list(reply);
+        if (memberNames.empty()) {
+            cout << "This group doesn't contain any member" << endl;
+        } else {
+            for (const auto &memberName: memberNames) {
+                cout << memberName << endl;
+            }
         }
     }
+    catch (boost::archive::archive_exception& e){
+        cout << "Group does not exists!" << endl;
+    }
+
 }
 
 void Client::join_group(const string& groupObject) { // TODO the whole group object is returned
 }
 
-void Client::quit_group(const string& group_name) {
+void Client::exit_group(const string& group_name) {
 }
 
 void Client::quit() {
@@ -121,28 +154,6 @@ void Client::quit() {
 
 void Client::set_group(Group *group_name) {
     currentGroup = group_name;
-}
-
-
-
-void Client::sendCommand(const string& input) {
-
-    cout << "Start sending command" << endl;
-    connectToServer();
-    send(sock, input.c_str(), input.size(), 0);
-    valread = read(sock, buffer, 1024);
-    string reply = string(buffer, valread);
-
-
-    // TODO implement for all possible commands
-    if (boost::starts_with(input, "!lg")) {
-        list_groups(reply);
-    }
-    else if (boost::starts_with(input, "!lm")) {
-        list_members(reply);
-    }
-    else
-        cout << reply << endl;
 }
 
 void Client::sendMessage(string msg) {
@@ -158,7 +169,7 @@ string Client::getUsername() {
     return username;
 }
 
-int Client::getPort() {
+int Client::getPort() const {
     return port;
 }
 

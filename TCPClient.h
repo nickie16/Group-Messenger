@@ -22,11 +22,11 @@ private:
     string ip;
     string username;
     int port;
-    int id;
-    int sock;
-    int valread;
-    Group *currentGroup;
-    struct sockaddr_in serv_addr;
+    int id{};
+    int sock{};
+    int valread{};
+    Group *currentGroup{};
+    struct sockaddr_in serv_addr{};
     char buffer[1024] = {0};
 
 public:
@@ -38,7 +38,7 @@ public:
 
     string getUsername();
 
-    int getPort();
+    int getPort() const;
 
     ssize_t connectToServer();
 
@@ -46,13 +46,13 @@ public:
 
     void registerToServer();
 
-    static void list_groups(string reply);
+    static void list_groups(const string& reply);
 
-    void list_members(string group_name);
+    static void list_members(const string& group_name);
 
     void join_group(const string& group_name);
 
-    void quit_group(const string& group_name);
+    void exit_group(const string& group_name);
 
     void quit();
 

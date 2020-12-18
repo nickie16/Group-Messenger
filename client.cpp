@@ -23,6 +23,7 @@ using std::getline;
 //}
 
 void check_input(string input){
+    // TODO validate input
     return ;
 }
 
@@ -31,26 +32,25 @@ int main(int argc, char const *argv[]) {
     ssize_t i;
 
     if (argc < 3) { ;
-        //cout << "Specify arguments! 1. port and 2. username, default values are going to be used" << endl;
+        cout << "Specify arguments! 1. port and 2. username, default values are going to be used" << endl;
     }
-    Client *client = new Client("192.168.1.2", argc > 1 ? std::stoi(argv[1]) : PORT, argc > 2 ? argv[2] : USERNAME);
+    // TODO infer ip address
+    auto *client = new Client("192.168.1.2", argc > 1 ? std::stoi(argv[1]) : PORT, argc > 2 ? argv[2] : USERNAME);
     //if ((i = client->init()) < 0) return i;
     client->init();
     cout << '>';
     getline(cin, input);
     while (input != "!q") {
-        // check_input(input); // TODO validate input
+        // check_input(input);
         if (input.find('!') == 0) { //  boost::starts_with(input,'!')
-            // int pos = input.find(' ');
-            // string cmd = input.substr(0, pos);
-            // string group_name = input.substr(pos + 1);
+
             cout << "Command Mode..." << endl;
             client->sendCommand(input);
             /*if (cmd =="!lg") client->list_groups();
             else if (cmd == "!lm") client->list_members(group_name);
             else if (cmd == "!j")  client->join_group(group_name);
             else if (cmd == "!w")  client->set_group(group_name);
-            else if (cmd == "!e")  client->quit_group(group_name);*/
+            else if (cmd == "!e")  client->exit_group(group_name);*/
         } else {
             client->sendMessage(input);
         }

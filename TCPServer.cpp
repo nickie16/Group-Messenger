@@ -104,7 +104,6 @@ public:
             string cmd = input.substr(0, pos);
             string param = input.substr(pos + 1);
             cout << "Command received was: "  << input << endl;
-            // TODO use switch command
             // TODO command codes should be moved as constants in another file
             // TODO implement leave client command
             if (cmd == "!lg")
@@ -161,7 +160,7 @@ public:
             string nameListSerialized = serialize_list(nameList);
             send(new_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
         }
-        // TODO else reply group not present
+        // NOTE client handles the case when group is not present
     }
 
     void join_group(const string& groupName) {
@@ -171,7 +170,6 @@ public:
         if (!group){
             group = new Group(groupName);
             chatRooms.push_back(group);
-            // issue - perna opws einai to group ekeinh th stigmh, to add meta den kratietai, epeidh pairnei reference
         }
 
         //TODO add user with correct ip:port:username to group's member list
@@ -207,7 +205,9 @@ public:
     }
 
     void quit(int id) {
-        //TODO delete id from unmap
+        // TODO delete id from unmap
+        // TODO search in every group and delete client
+        // TODO update the group list of other clients, is it possible?
     }
 };
 
