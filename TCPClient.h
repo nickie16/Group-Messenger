@@ -21,13 +21,14 @@ class Client {
 private:
     string ip;
     string username;
-    int port;
-    int id{};
-    int sock{};
-    int valread{};
+    int port, id{};
+    int sock_tcp{}, sock_udp{};
+    int valread{}, valread_udp{};
     Group *currentGroup{};
-    struct sockaddr_in serv_addr{};
-    char buffer[1024] = {0};
+    struct sockaddr_in serv_addr{}, cln_address{};
+    char buffer[1024] = {0}, buffer_udp[1024] = {0};
+
+    void unicast(Client* t);
 
 public:
     Client(string ip_addr, int netport, string name);
@@ -40,11 +41,15 @@ public:
 
     int getPort() const;
 
-    ssize_t connectToServer();
+    ssize_t connect_to_server();
 
     ssize_t init();
 
-    void registerToServer();
+    void register_to_server();
+
+    void init_udp();
+
+    void receive_udp();
 
     static void list_groups(const string& reply);
 

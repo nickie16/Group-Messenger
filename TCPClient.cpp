@@ -17,7 +17,6 @@
 
 #define PORT 8091
 #define SERVER_ADDR "127.0.0.1"
-#define USERNAME "nikmand"
 
 using std::cout;
 using std::cin;
@@ -42,32 +41,65 @@ Client::Client(string ip_addr, int netport, string name) {
 }
 
 Client::~Client() {
+    // TODO check what is needed in destruct
     ;
 }
 
 
 ssize_t Client::init() {
-    //initialize of client's address should happens only once
+    //initialize of client's cln_address should happens only once
     cout << "Initializing Client" << endl;
 
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
     serv_addr.sin_port = htons(PORT);
-    registerToServer();
+
+    register_to_server();
+
+    init_udp();
+
     return 0;
 }
 
-ssize_t Client::connectToServer() {
+void Client::init_udp() {
+
+    // Creating socket file descriptor
+    if ( (sock_udp = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    cln_address.sin_family = AF_INET;
+    cln_address.sin_addr.s_addr = INADDR_ANY; // inet_addr("127.0.0.1");
+    cln_address.sin_port = htons(port);
+
+    // Forcefully attaching socket to port
+    if (bind(sock_udp, (struct sockaddr *) &cln_address, sizeof(cln_address)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void Client::receive_udp() {
+
+    valread_udp = read(sock_udp, buffer_udp, 1024);
+    string reply = string(buffer, valread);
+
+    // TODO figure out source of the message
+    // TODO display message to screen
+}
+
+ssize_t Client::connect_to_server() {
     cout << "Starting connect" << endl;
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((sock_tcp = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         cout << "Socket creation error " << endl;
         return -1;
     }
 
     // client's socket gets bound to port dynamically
-    if (connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+    if (connect(sock_tcp, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         cout << errno << endl;
         cout << "Connection Failed " << endl;
         return -1;
@@ -77,12 +109,12 @@ ssize_t Client::connectToServer() {
     return 0;
 }
 
-void Client::registerToServer() {
+void Client::register_to_server() {
     cout << "Attempt to register on Server" << endl;
-    connectToServer();
+    connect_to_server();
     string command = "!r " + ip + ":" + std::to_string(port) + ":" + username;
-    send(sock, command.c_str(), command.size(), 0);
-    valread = read(sock, buffer, 1024);
+    send(sock_tcp, command.c_str(), command.size(), 0);
+    valread = read(sock_tcp, buffer, 1024);
     id = std::stoi(string(buffer, valread));
     cout << "Successfully registered to Server. Acquired id: " << id << endl;
 }
@@ -90,10 +122,10 @@ void Client::registerToServer() {
 void Client::sendCommand(const string& input) {
 
     cout << "Start sending command" << endl;
-    connectToServer();
+    connect_to_server();
     // TODO send also ID
-    send(sock, input.c_str(), input.size(), 0);
-    valread = read(sock, buffer, 1024);
+    send(sock_tcp, input.c_str(), input.size(), 0);
+    valread = read(sock_tcp, buffer, 1024);
     string reply = string(buffer, valread);
 
     // TODO implement for all possible commands
@@ -161,6 +193,7 @@ void Client::sendMessage(string msg) {
     cout << "Start sending message" << endl;
 }
 
+
 string Client::getIp() {
     return ip;
 }
@@ -171,6 +204,10 @@ string Client::getUsername() {
 
 int Client::getPort() const {
     return port;
+}
+
+void Client::unicast(Client* t) {
+
 }
 
 

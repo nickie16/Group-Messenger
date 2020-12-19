@@ -65,10 +65,10 @@ public:
         }
 
         address.sin_family = AF_INET;
-        address.sin_addr.s_addr = inet_addr("127.0.0.1"); //INADDR_ANY; //
+        address.sin_addr.s_addr = INADDR_ANY; // inet_addr("127.0.0.1");
         address.sin_port = htons(PORT);
 
-        // Forcefully attaching socket to the port 8080
+        // Forcefully attaching socket to port
         if (bind(sockfd, (struct sockaddr *) &address, sizeof(address)) < 0) {
             perror("bind failed");
             exit(EXIT_FAILURE);
