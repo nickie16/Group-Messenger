@@ -12,6 +12,8 @@
 #include <boost/serialization/list.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <utility>
+#include<thread>
+#include <atomic>
 #include "TCPClient.h"
 
 
@@ -28,10 +30,10 @@ using std::list;
 list<string> deserialize_list(const string& reply){
     std::stringstream out;
     out.str(reply);
-    list<string> newlist;
+    list<string> result_list;
     boost::archive::binary_iarchive ia(out);
-    ia >> newlist;
-    return newlist;
+    ia >> result_list;
+    return result_list;
 }
 
 Client::Client(string ip_addr, int netport, string name) {
@@ -84,10 +86,31 @@ void Client::init_udp() {
 void Client::receive_udp() {
 
     valread_udp = read(sock_udp, buffer_udp, 1024);
+    cout << "Values read: " << valread_udp << endl;
     string reply = string(buffer, valread);
 
+    cout << reply << endl;
+
     // TODO figure out source of the message
-    // TODO display message to screen
+    // TODO implement FIFO and Total Ordering
+}
+
+void Client::start_udp_thread(std::atomic<bool>& should_thread_exit) {
+
+    auto udp_loop = [](Client* t , std::atomic<bool>* should_thread_exit){
+        cout << (*should_thread_exit) << endl;
+        while(!(*should_thread_exit)) {
+            cout << "loop" << endl;
+            t->receive_udp();
+        }
+        cout << (*should_thread_exit) << endl;
+    };
+
+    std::thread thread_udp(udp_loop, this, &should_thread_exit);
+}
+
+void Client::stop_udp_thread(std::atomic<bool>& should_thread_exit){
+    should_thread_exit = true;
 }
 
 ssize_t Client::connect_to_server() {

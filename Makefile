@@ -3,10 +3,10 @@ FLAGS = -O3 -Wall -std=c++11
 all: server client
 
 server: TCPServer.cpp Group.cpp TCPClient.cpp 
-	g++ $(FLAGS) TCPServer.cpp Group.cpp TCPClient.cpp -lboost_serialization -o server
+	g++ $(FLAGS) TCPServer.cpp Group.cpp TCPClient.cpp -lboost_serialization -pthread -o server
 
 client: TCPClient.cpp client.cpp
-	g++ $(FLAGS) client.cpp TCPClient.cpp -lboost_serialization -o client
+	g++ $(FLAGS) client.cpp TCPClient.cpp -lboost_serialization -pthread -o client
 
 clean:
 	rm server client

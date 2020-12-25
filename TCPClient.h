@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <cerrno>
-//#include "Group.h"
+
 class Group;
 
 using std::string;
@@ -27,7 +27,6 @@ private:
     Group *currentGroup{};
     struct sockaddr_in serv_addr{}, cln_address{};
     char buffer[1024] = {0}, buffer_udp[1024] = {0};
-
     void unicast(Client* t);
 
 public:
@@ -48,6 +47,10 @@ public:
     void register_to_server();
 
     void init_udp();
+
+    void start_udp_thread(std::atomic<bool>& should_thread_exit);
+
+    void stop_udp_thread(std::atomic<bool>& should_thread_exit);
 
     void receive_udp();
 

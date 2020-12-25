@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <iostream>
+#include <atomic>
 #include "TCPClient.h"
 
 #include <netdb.h>
@@ -8,7 +9,6 @@
 
 #define PORT 8080
 #define SERVER_ADDR "127.0.0.1"
-#define USERNAME "nikmand"
 
 using std::cout;
 using std::cin;
@@ -16,15 +16,6 @@ using std::endl;
 using std::string;
 using std::getline;
 
-//void init_logging()
-//{
-//    logging::core::get()->set_filter
-//            (
-//                    logging::trivial::severity >= logging::trivial::info
-//            );
-//
-//    logging::add_common_attributes();
-//}
 
 void get_ip(char* buffer){
     const char* google_dns_server = "8.8.8.8";
@@ -65,10 +56,13 @@ void check_input(string input){
     return ;
 }
 
+
+
 int main(int argc, char const *argv[]) {
     char login_user[1024], ip[80];
     string input, username;
     int port;
+    std::atomic<bool> should_thread_exit (false);
 
     if (argc < 3) { ;
         cout << "Specify arguments! 1. port and 2. username, default values are going to be used" << endl;
@@ -80,9 +74,11 @@ int main(int argc, char const *argv[]) {
     username = argc > 2 ? argv[2] : login_user;
 
     auto *client = new Client(ip, port,  username);
-    cout << login_user << endl;
-    cout << ip << endl;
+//    cout << login_user << endl;
+//    cout << ip << endl;
     client->init();
+    client->start_udp_thread(should_thread_exit);
+
     cout << '[' << username << ']' << '>';
     getline(cin, input);
     while (input != "!q") {
@@ -99,6 +95,10 @@ int main(int argc, char const *argv[]) {
         getline(cin, input);
     }
     client->quit();
+    client->stop_udp_thread(should_thread_exit);
+
+    //thread_udp.join();
+
     cout << "Bye..." << endl;
     delete client;
     return 0;

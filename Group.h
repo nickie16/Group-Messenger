@@ -6,6 +6,7 @@ class Group; // forward declaration
 #include <iostream>
 #include <string>
 #include <list>
+#include <atomic>
 #include "TCPClient.h"
 
 using std::list;

@@ -10,6 +10,7 @@
 #include "Group.h"
 #include <list>
 #include <sstream>
+#include <atomic>
 #include <boost/archive/binary_oarchive.hpp>
 //#include "Constants.h"
 #include <boost/archive/binary_iarchive.hpp>
@@ -32,18 +33,17 @@ string serialize_list(const list<string>& slist){
 class Server {
 
 private:
-    int sockfd, new_socket, valread;
+    int sockfd{}, client_socket{}, valread{};
     char buffer[1024] = {0};
-    struct sockaddr_in address;
+    struct sockaddr_in address{};
     int addrlen = sizeof(address);
     list<Group*> chatRooms;
     list<Group*>::iterator it;
     std::unordered_map<int, string> unmap;
     int num_of_clients = 0;
-    Client *t;
-    Group *g;
+    Client *t{};
 
-    Server() {};
+    Server() = default;
 
 public:
     static Server &getInstance() {
@@ -54,6 +54,8 @@ public:
     Server(Server const &) = delete;
 
     void operator=(Server const &) = delete; // we forbid the use of this function as Server is singleton
+
+    // TODO delete objects
 
     void init() {
 
@@ -86,7 +88,7 @@ public:
         while (true) {
             cout << "Waiting for an incoming connection..." << endl;
 
-            if ((new_socket = accept(sockfd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
+            if ((client_socket = accept(sockfd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
                 perror("accept failed");
                 exit(EXIT_FAILURE);
             }
@@ -94,8 +96,8 @@ public:
             cout << "Connected to: " << inet_ntoa(address.sin_addr) << endl;
             cout << "Connection port: " << address.sin_port << endl;
 
-            // because communication is synchronous we respond right away to the correct client using new_socket
-            if ((valread = read(new_socket, buffer, sizeof(buffer))) < 0) {
+            // because communication is synchronous we respond right away to the correct client using client_socket
+            if ((valread = read(client_socket, buffer, sizeof(buffer))) < 0) {
                 perror("read from remote peer failed");
             }
 
@@ -121,7 +123,7 @@ public:
            // cout << "Reply sent" << endl;
 
             // closing the tcp connection as it is expensive to maintain
-            if (close(new_socket) < 0) {
+            if (close(client_socket) < 0) {
                 perror("close");
             }
             cout << "Connection closed" << endl;
@@ -135,7 +137,7 @@ public:
         std::pair<int, string> pair(id, client_info);
         unmap.insert(pair);
         string ids = std::to_string(id);
-        send(new_socket, ids.c_str(), ids.size(), 0);
+        send(client_socket, ids.c_str(), ids.size(), 0);
     }
 
     void list_groups() {
@@ -144,7 +146,7 @@ public:
             nameList.push_back((*it)->getName());
         }
         string nameListSerialized = serialize_list(nameList);
-        send(new_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
+        send(client_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
     }
 
     void list_members(const string& groupName) {
@@ -158,7 +160,7 @@ public:
             }
             cout << "Number of members on the requested group: " << nameList.size() << endl;
             string nameListSerialized = serialize_list(nameList);
-            send(new_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
+            send(client_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
         }
         // NOTE client handles the case when group is not present
     }
@@ -213,11 +215,9 @@ public:
 
 int main(int argc, char const *argv[]) {
 
-    cout << "Main starts" << endl;
     Server &server = Server::getInstance();
-    //Group *group = new Group("nikmand"); // is that needed ?
     server.init();
-    server.run();  // TODO check if it should run as a new thread and how can properly shutdown the server
+    server.run();  // TODO check how we can properly shutdown the server
     cout << "Are we going to ever arrive here?" << endl;
     return 0;
 }
