@@ -10,6 +10,7 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include <iostream>
+#include<thread>
 #include <cerrno>
 
 class Group;
@@ -28,6 +29,7 @@ private:
     struct sockaddr_in serv_addr{}, cln_address{};
     char buffer[1024] = {0}, buffer_udp[1024] = {0};
     void unicast(Client* t);
+    std::thread thread_udp;
 
 public:
     Client(string ip_addr, int netport, string name);

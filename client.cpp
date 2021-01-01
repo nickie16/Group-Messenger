@@ -97,8 +97,6 @@ int main(int argc, char const *argv[]) {
     client->quit();
     client->stop_udp_thread(should_thread_exit);
 
-    //thread_udp.join();
-
     cout << "Bye..." << endl;
     delete client;
     return 0;

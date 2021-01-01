@@ -87,7 +87,7 @@ void Client::receive_udp() {
 
     valread_udp = read(sock_udp, buffer_udp, 1024);
     cout << "Values read: " << valread_udp << endl;
-    string reply = string(buffer, valread);
+    string reply = string(buffer_udp, valread_udp);
 
     cout << reply << endl;
 
@@ -103,14 +103,16 @@ void Client::start_udp_thread(std::atomic<bool>& should_thread_exit) {
             cout << "loop" << endl;
             t->receive_udp();
         }
+
         cout << (*should_thread_exit) << endl;
     };
 
-    std::thread thread_udp(udp_loop, this, &should_thread_exit);
+    thread_udp = std::thread(udp_loop, this, &should_thread_exit);
 }
 
 void Client::stop_udp_thread(std::atomic<bool>& should_thread_exit){
     should_thread_exit = true;
+    thread_udp.join();
 }
 
 ssize_t Client::connect_to_server() {
