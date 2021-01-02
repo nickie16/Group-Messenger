@@ -81,6 +81,7 @@ int main(int argc, char const *argv[]) {
 
     cout << '[' << username << ']' << '>';
     getline(cin, input);
+    cout << input << endl;
     while (input != "!q") {
         // check_input(input);
         if (input.find('!') == 0) { //  boost::starts_with(input,'!')
@@ -93,6 +94,7 @@ int main(int argc, char const *argv[]) {
         }
         cout << '[' << username << ']' << '>';
         getline(cin, input);
+        cout << input << endl;
     }
     client->quit();
     client->stop_udp_thread(should_thread_exit);

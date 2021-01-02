@@ -13,6 +13,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <utility>
 #include<thread>
+#include <csignal>
 #include <atomic>
 #include "TCPClient.h"
 
@@ -81,30 +82,35 @@ void Client::init_udp() {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
+
 }
 
 void Client::receive_udp() {
 
     valread_udp = read(sock_udp, buffer_udp, 1024);
-    cout << "Values read: " << valread_udp << endl;
-    string reply = string(buffer_udp, valread_udp);
+    if (valread_udp >= 0) {
+        cout << "Values read: " << valread_udp << endl;
+        string reply = string(buffer_udp, valread_udp);
 
-    cout << reply << endl;
+        cout << reply << endl;
 
-    // TODO figure out source of the message
-    // TODO implement FIFO and Total Ordering
+        // TODO figure out source of the message
+        // TODO implement FIFO and Total Ordering
+
+    }
 }
 
 void Client::start_udp_thread(std::atomic<bool>& should_thread_exit) {
 
     auto udp_loop = [](Client* t , std::atomic<bool>* should_thread_exit){
-        cout << (*should_thread_exit) << endl;
+        siginterrupt(SIGINT, true);
+        std::signal(SIGINT, Client::signalHandler);
+
         while(!(*should_thread_exit)) {
             cout << "loop" << endl;
             t->receive_udp();
         }
 
-        cout << (*should_thread_exit) << endl;
     };
 
     thread_udp = std::thread(udp_loop, this, &should_thread_exit);
@@ -112,6 +118,7 @@ void Client::start_udp_thread(std::atomic<bool>& should_thread_exit) {
 
 void Client::stop_udp_thread(std::atomic<bool>& should_thread_exit){
     should_thread_exit = true;
+    pthread_kill(thread_udp.native_handle(), SIGINT); // signal is send to interrupt the
     thread_udp.join();
 }
 
@@ -206,7 +213,7 @@ void Client::exit_group(const string& group_name) {
 
 void Client::quit() {
     // TODO implement
-    cout << id << endl;
+    cout << "Client with id " << id << "is exiting." << endl;
 }
 
 void Client::set_group(Group *group_name) {
@@ -216,6 +223,11 @@ void Client::set_group(Group *group_name) {
 void Client::sendMessage(string msg) {
     // TODO broadcast to all members of current group
     cout << "Start sending message" << endl;
+
+    //list<Client> t = currentGroup->getMembers();
+//    for (auto client: ){
+//        ;
+//    }
 }
 
 
@@ -232,6 +244,17 @@ int Client::getPort() const {
 }
 
 void Client::unicast(Client* t) {
+
+}
+
+void Client::signalHandler(int signum) {
+
+    cout << "Interrupt signal (" << signum << ") received.\n";
+
+}
+
+void Client::sendUdpMessage(string message) {
+
 
 }
 
