@@ -23,15 +23,15 @@ private:
     string ip;
     string username;
     int port, id{};
-    int sock_tcp{}, sock_udp{};
+    int sock_tcp{}, sock_udp_recv{}, sock_udp_send{};
     int valread{}, valread_udp{};
     Group *currentGroup{};
-    struct sockaddr_in serv_addr{}, cln_address{};
+    struct sockaddr_in serv_addr{}, cln_addr{};
     char buffer[1024] = {0}, buffer_udp[1024] = {0};
     void unicast(Client* t);
     std::thread thread_udp;
     static void signalHandler(int signum);
-    void sendUdpMessage(string message);
+    void sendUdpMessage(const string& message);
 
 public:
     Client(string ip_addr, int netport, string name);

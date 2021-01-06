@@ -56,8 +56,6 @@ void check_input(string input){
     return ;
 }
 
-
-
 int main(int argc, char const *argv[]) {
     char login_user[1024], ip[80];
     string input, username;

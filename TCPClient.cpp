@@ -38,6 +38,8 @@ list<string> deserialize_list(const string& reply){
 }
 
 Client::Client(string ip_addr, int netport, string name) {
+
+    cout << "Creating client with name " << name << " in address " << ip << ", port " << port << "." << endl;
     ip = std::move(ip_addr);
     port = netport;
     username = std::move(name);
@@ -50,7 +52,7 @@ Client::~Client() {
 
 
 ssize_t Client::init() {
-    //initialize of client's cln_address should happens only once
+    //initialize of client's cln_addr should happens only once
     cout << "Initializing Client" << endl;
 
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -67,19 +69,25 @@ ssize_t Client::init() {
 
 void Client::init_udp() {
 
-    // Creating socket file descriptor
-    if ( (sock_udp = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+    // Creating socket file descriptor for receiving messages
+    if ((sock_udp_recv = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    cln_address.sin_family = AF_INET;
-    cln_address.sin_addr.s_addr = INADDR_ANY; // inet_addr("127.0.0.1");
-    cln_address.sin_port = htons(port);
+    cln_addr.sin_family = AF_INET;
+    cln_addr.sin_addr.s_addr = INADDR_ANY; // inet_addr("127.0.0.1");
+    cln_addr.sin_port = htons(port);
 
     // Forcefully attaching socket to port
-    if (bind(sock_udp, (struct sockaddr *) &cln_address, sizeof(cln_address)) < 0) {
+    if (bind(sock_udp_recv, (struct sockaddr *) &cln_addr, sizeof(cln_addr)) < 0) {
         perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Creating socket file descriptor for sending messages
+    if ((sock_udp_send = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+        perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
 
@@ -87,7 +95,7 @@ void Client::init_udp() {
 
 void Client::receive_udp() {
 
-    valread_udp = read(sock_udp, buffer_udp, 1024);
+    valread_udp = read(sock_udp_recv, buffer_udp, 1024);
     if (valread_udp >= 0) {
         cout << "Values read: " << valread_udp << endl;
         string reply = string(buffer_udp, valread_udp);
@@ -228,6 +236,8 @@ void Client::sendMessage(string msg) {
 //    for (auto client: ){
 //        ;
 //    }
+
+    sendUdpMessage("Hello from nikmand");
 }
 
 
@@ -253,8 +263,17 @@ void Client::signalHandler(int signum) {
 
 }
 
-void Client::sendUdpMessage(string message) {
+void Client::sendUdpMessage(const string& message) {
 
+    cln_addr.sin_family = AF_INET;
+    cln_addr.sin_addr.s_addr = INADDR_ANY; // TODO fill in address and port of each client
+    cln_addr.sin_port = htons(port);
+
+    sendto(sock_udp_send, message.c_str(), message.size(),
+           MSG_CONFIRM, (const struct sockaddr *) &cln_addr,
+           sizeof(cln_addr));
+
+    cout << "Message sent!" << endl;
 
 }
 
