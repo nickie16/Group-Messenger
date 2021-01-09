@@ -16,6 +16,8 @@
 #include <csignal>
 #include <atomic>
 #include "TCPClient.h"
+#include "ControlMessage.h"
+#include "GroupMessage.h"
 
 
 #define PORT 8091
@@ -39,10 +41,11 @@ list<string> deserialize_list(const string& reply){
 
 Client::Client(string ip_addr, int netport, string name) {
 
-    cout << "Creating client with name " << name << " in address " << ip << ", port " << port << "." << endl;
     ip = std::move(ip_addr);
     port = netport;
     username = std::move(name);
+
+    cout << "Creating client with name " << username << " in address " << ip << ", port " << port << "." << endl;
 }
 
 Client::~Client() {
@@ -76,7 +79,7 @@ void Client::init_udp() {
     }
 
     cln_addr.sin_family = AF_INET;
-    cln_addr.sin_addr.s_addr = INADDR_ANY; // inet_addr("127.0.0.1");
+    cln_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // inet_addr("127.0.0.1");
     cln_addr.sin_port = htons(port);
 
     // Forcefully attaching socket to port
@@ -90,6 +93,20 @@ void Client::init_udp() {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
+
+}
+
+void Client::sendUdpMessage(const string& message) {
+
+    cln_addr.sin_family = AF_INET;
+    cln_addr.sin_addr.s_addr = INADDR_ANY; // TODO fill in address and port of each client
+    cln_addr.sin_port = htons(8084);
+
+    sendto(sock_udp_send, message.c_str(), message.size(),
+           MSG_CONFIRM, (const struct sockaddr *) &cln_addr,
+           sizeof(cln_addr));
+
+    cout << "Message sent!" << endl;
 
 }
 
@@ -115,7 +132,6 @@ void Client::start_udp_thread(std::atomic<bool>& should_thread_exit) {
         std::signal(SIGINT, Client::signalHandler);
 
         while(!(*should_thread_exit)) {
-            cout << "loop" << endl;
             t->receive_udp();
         }
 
@@ -156,17 +172,29 @@ void Client::register_to_server() {
     send(sock_tcp, command.c_str(), command.size(), 0);
     valread = read(sock_tcp, buffer, 1024);
     id = std::stoi(string(buffer, valread));
-    cout << "Successfully registered to Server. Acquired id: " << id << endl;
+    cout << "Successfully registered to Server. Acquired id_user: " << id << endl;
 }
 
 void Client::sendCommand(const string& input) {
 
-    cout << "Start sending command" << endl;
+    cout << "Start sending command message" << endl;
     connect_to_server();
-    // TODO send also ID
+
+    int pos = input.find(' '); //TODO if no space what happens ?
+    string cmd = input.substr(0, pos);
+    string param = input.substr(pos + 1);
+
+    controlMessageType command = message_type_map[cmd];
+
+    auto* ctrl_message = new ControlMessage(id, username, command, param);
+
+    //TODO how we serialize a class of our own ??
+
     send(sock_tcp, input.c_str(), input.size(), 0);
     valread = read(sock_tcp, buffer, 1024);
     string reply = string(buffer, valread);
+
+    // TODO consider how control replies will be formed
 
     // TODO implement for all possible commands
     if (boost::starts_with(input, "!lg")) {
@@ -221,7 +249,7 @@ void Client::exit_group(const string& group_name) {
 
 void Client::quit() {
     // TODO implement
-    cout << "Client with id " << id << "is exiting." << endl;
+    cout << "Client with id_user " << id << "is exiting." << endl;
 }
 
 void Client::set_group(Group *group_name) {
@@ -262,19 +290,3 @@ void Client::signalHandler(int signum) {
     cout << "Interrupt signal (" << signum << ") received.\n";
 
 }
-
-void Client::sendUdpMessage(const string& message) {
-
-    cln_addr.sin_family = AF_INET;
-    cln_addr.sin_addr.s_addr = INADDR_ANY; // TODO fill in address and port of each client
-    cln_addr.sin_port = htons(port);
-
-    sendto(sock_udp_send, message.c_str(), message.size(),
-           MSG_CONFIRM, (const struct sockaddr *) &cln_addr,
-           sizeof(cln_addr));
-
-    cout << "Message sent!" << endl;
-
-}
-
-

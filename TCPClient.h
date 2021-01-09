@@ -10,8 +10,9 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include <iostream>
-#include<thread>
+#include <thread>
 #include <cerrno>
+#include "common.h"
 
 class Group;
 

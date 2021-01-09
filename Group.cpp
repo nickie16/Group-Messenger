@@ -1,7 +1,6 @@
 #include "Group.h"
 
-#include <utility>
-//#include "TCPClient.h"
+//#include <utility>
 
 using std::endl;
 
@@ -17,23 +16,24 @@ string Group::getName() {
 	return name;
 }
 
-list<Client> Group::getMembers(){
+list<ClientEntry> Group::getMembers(){
+
 	return members;
 }
 
-void Group::addMember(const Client& t){
+void Group::addMember(const ClientEntry& t){
 	members.push_back(t);
 }
 
 void Group::removeMember(const string& member_name)
 {
-	auto is_ = [member_name](Client &t) { return t.getUsername() == member_name;};
+	auto is_ = [member_name](ClientEntry &t) { return t.getUsername() == member_name;};
 	members.remove_if(is_);
 }
 
 void Group::printMembers(){
 	std::cout << "Number of members in group: " << members.size() << endl;
-	for (auto member : members){
+	for (const auto& member : members){
 	     std::cout << member.getUsername() << endl;
 	     std::cout << "inside printMembers" << endl;
 	}

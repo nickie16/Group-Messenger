@@ -12,9 +12,9 @@
 #include <sstream>
 #include <atomic>
 #include <boost/archive/binary_oarchive.hpp>
-//#include "Constants.h"
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/list.hpp> // Provides an implementation of serialize for std::list
+//#include "Constants.h"
 
 #define PORT 8091
 
@@ -41,7 +41,7 @@ private:
     list<Group*>::iterator it;
     std::unordered_map<int, string> unmap;
     int num_of_clients = 0;
-    Client *t{};
+    ClientEntry *t{};
 
     Server() = default;
 
@@ -175,7 +175,7 @@ public:
         }
 
         //TODO add user with correct ip:port:username to group's member list
-        t = new Client("127.0.0.1", 4340, "nikmand");
+        t = new ClientEntry(0, "nikmand", "127.0.0.1", 4340);
         group->addMember(*t);
         group->printMembers();
     }
@@ -207,7 +207,7 @@ public:
     }
 
     void quit(int id) {
-        // TODO delete id from unmap
+        // TODO delete id_user from unmap
         // TODO search in every group and delete client
         // TODO update the group list of other clients, is it possible?
     }

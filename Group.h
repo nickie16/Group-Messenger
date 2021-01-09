@@ -2,12 +2,12 @@
 #ifndef GROUP_H
 #define GROUP_H
 
-class Group; // forward declaration
+//class Group; // forward declaration
 #include <iostream>
 #include <string>
 #include <list>
 #include <atomic>
-#include "TCPClient.h"
+#include "ClientEntry.h"
 
 using std::list;
 using std::string;
@@ -16,7 +16,7 @@ class Group {
 
 private:
     string name;
-    list<Client> members;
+    list<ClientEntry> members; // TODO maybe a hashset instead of a list?
 public:
     explicit Group(string group);
 
@@ -24,9 +24,9 @@ public:
 
     string getName();
 
-    list<Client> getMembers();
+    list<ClientEntry> getMembers();
 
-    void addMember(const Client& t);
+    void addMember(const ClientEntry& t);
 
     void printMembers();
 
