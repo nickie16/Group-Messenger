@@ -7,7 +7,6 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <list>
-#include <sstream>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/list.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -189,6 +188,7 @@ void Client::sendCommand(const string& input) {
     auto* ctrl_message = new ControlMessage(id, username, command, param);
 
     //TODO how we serialize a class of our own ??
+
 
     send(sock_tcp, input.c_str(), input.size(), 0);
     valread = read(sock_tcp, buffer, 1024);

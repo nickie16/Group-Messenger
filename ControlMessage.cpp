@@ -35,3 +35,8 @@ int ControlMessage::getId() const {
 void ControlMessage::setId(int id) {
     ControlMessage::id_user = id;
 }
+
+//template<class Archive>
+//void ControlMessage::serialize(Archive &archive) {
+//    archive( id_user, username, params );
+//}

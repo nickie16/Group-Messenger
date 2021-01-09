@@ -14,7 +14,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/list.hpp> // Provides an implementation of serialize for std::list
-//#include "Constants.h"
+#include "common.h"
 
 #define PORT 8091
 
@@ -22,6 +22,17 @@ using std::list;
 using std::cout;
 using std::endl;
 using std::string;
+
+
+string serializeClass(const list<string>& object){
+
+    std::stringstream ss;
+    cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
+
+    oarchive(object); // Write the data to the archive
+
+    return ss.str();
+}
 
 string serialize_list(const list<string>& slist){
     std::stringstream nameListStream;
@@ -145,7 +156,7 @@ public:
         for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
             nameList.push_back((*it)->getName());
         }
-        string nameListSerialized = serialize_list(nameList);
+        string nameListSerialized = serializeClass(nameList);
         send(client_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
     }
 

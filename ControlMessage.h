@@ -4,6 +4,8 @@
 
 #include <iostream>
 #include <string>
+//#include <cereal/archives/binary.hpp>
+#include <sstream>
 #include "common.h"
 
 using std::string;
@@ -34,6 +36,9 @@ public:
     controlMessageType getMessageType() const;
 
     void setMessageType(controlMessageType messageType);
+
+//    template<class Archive>
+//    void serialize(Archive & archive);
 
 };
 
