@@ -1,7 +1,7 @@
 #include "ControlMessage.h"
 
 // constructor using initializer list
-ControlMessage::ControlMessage(int idUser, const string &username, controlMessageType messageType, const string &params)
+ControlMessage::ControlMessage(int idUser, const string &username, string messageType, const string &params)
         : id_user(idUser), username(username), messageType(messageType), params(params) {}
 
 const string &ControlMessage::getUsername() const {
@@ -12,11 +12,11 @@ void ControlMessage::setUsername(const string &username) {
     ControlMessage::username = username;
 }
 
-controlMessageType ControlMessage::getMessageType() const {
+string ControlMessage::getMessageType() const {
     return messageType;
 }
 
-void ControlMessage::setMessageType(controlMessageType messageType) {
+void ControlMessage::setMessageType(string messageType) {
     ControlMessage::messageType = messageType;
 }
 
@@ -36,7 +36,6 @@ void ControlMessage::setId(int id) {
     ControlMessage::id_user = id;
 }
 
-//template<class Archive>
-//void ControlMessage::serialize(Archive &archive) {
-//    archive( id_user, username, params );
-//}
+ControlMessage::ControlMessage() {}
+
+//ControlMessage::ControlMessage() {}

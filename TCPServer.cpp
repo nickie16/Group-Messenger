@@ -15,6 +15,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/list.hpp> // Provides an implementation of serialize for std::list
 #include "common.h"
+#include "ControlMessage.h"
 
 #define PORT 8091
 
@@ -23,16 +24,6 @@ using std::cout;
 using std::endl;
 using std::string;
 
-
-string serializeClass(const list<string>& object){
-
-    std::stringstream ss;
-    cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
-
-    oarchive(object); // Write the data to the archive
-
-    return ss.str();
-}
 
 string serialize_list(const list<string>& slist){
     std::stringstream nameListStream;
@@ -113,10 +104,18 @@ public:
             }
 
             string input = std::string(buffer, valread);
-            int pos = input.find(' ');
-            string cmd = input.substr(0, pos);
-            string param = input.substr(pos + 1);
+
+            ControlMessage ctrl_message = deserialize_object<ControlMessage>(input);
+
+//            int pos = input.find(' ');
+//            string cmd = input.substr(0, pos);
+//            string param = input.substr(pos + 1);
+
+            string cmd = ctrl_message.getMessageType();
+            string param = ctrl_message.getParams();
             cout << "Command received was: "  << input << endl;
+            cout << cmd << endl;
+            cout << param << endl;
             // TODO command codes should be moved as constants in another file
             // TODO implement leave client command
             if (cmd == "!lg")
@@ -130,7 +129,7 @@ public:
             else if (cmd == "!e")
                 quit_group(param);
             else
-                ; // TODO implement unsupported command
+                cout << "Unsupported Command received" << endl; // TODO implement unsupported command
            // cout << "Reply sent" << endl;
 
             // closing the tcp connection as it is expensive to maintain
@@ -152,11 +151,13 @@ public:
     }
 
     void list_groups() {
+        cout << "Fetching groups" << endl;
+
         list<string> nameList;
         for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
             nameList.push_back((*it)->getName());
         }
-        string nameListSerialized = serializeClass(nameList);
+        string nameListSerialized = serialize_object(nameList);
         send(client_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
     }
 

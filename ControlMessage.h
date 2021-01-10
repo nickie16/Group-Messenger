@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <string>
-//#include <cereal/archives/binary.hpp>
 #include <sstream>
 #include "common.h"
 
@@ -15,11 +14,15 @@ class ControlMessage{
 private:
     int id_user;
     string username;
-    controlMessageType messageType;
+    string messageType;
     string params;
 
 public:
-    ControlMessage(int idUser, const string &username, controlMessageType messageType, const string &params);
+    ControlMessage(int idUser, const string &username, string messageType, const string &params);
+
+    ControlMessage();
+
+    //ControlMessage();
 
     const string &getParams() const;
 
@@ -33,12 +36,25 @@ public:
 
     void setUsername(const string &username);
 
-    controlMessageType getMessageType() const;
+    string getMessageType() const;
 
-    void setMessageType(controlMessageType messageType);
+    void setMessageType(string messageType);
 
-//    template<class Archive>
-//    void serialize(Archive & archive);
+    template<class Archive>
+    void serialize(Archive &archive) {
+        archive( id_user, username, messageType, params );
+    }
+
+    template <class Archive>
+    static void load_and_construct( Archive & ar, cereal::construct<ControlMessage> & construct )
+    {
+        int id_user;
+        string username;
+        string messageType;
+        string params;
+        ar( id_user, username, messageType,  params);
+        construct( id_user, username, messageType,  params ); // calls MyType( x )
+    }
 
 };
 

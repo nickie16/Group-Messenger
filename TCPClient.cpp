@@ -38,6 +38,8 @@ list<string> deserialize_list(const string& reply){
     return result_list;
 }
 
+
+
 Client::Client(string ip_addr, int netport, string name) {
 
     ip = std::move(ip_addr);
@@ -168,7 +170,13 @@ void Client::register_to_server() {
     cout << "Attempt to register on Server" << endl;
     connect_to_server();
     string command = "!r " + ip + ":" + std::to_string(port) + ":" + username;
-    send(sock_tcp, command.c_str(), command.size(), 0);
+
+    //std::unique_ptr<ControlMessage> ctrl_message( new ControlMessage(0, username, "!r", ip + ":" + std::to_string(port)));
+
+    ControlMessage ctrl_message(0, username, "!r", ip + ":" + std::to_string(port) );
+    string ctrl_message_serialized = serialize_object(ctrl_message);
+
+    send(sock_tcp, ctrl_message_serialized.c_str(), ctrl_message_serialized.size(), 0);
     valread = read(sock_tcp, buffer, 1024);
     id = std::stoi(string(buffer, valread));
     cout << "Successfully registered to Server. Acquired id_user: " << id << endl;
@@ -183,14 +191,15 @@ void Client::sendCommand(const string& input) {
     string cmd = input.substr(0, pos);
     string param = input.substr(pos + 1);
 
-    controlMessageType command = message_type_map[cmd];
+    //controlMessageType command = message_type_map[cmd];
 
-    auto* ctrl_message = new ControlMessage(id, username, command, param);
+    ControlMessage ctrl_message(id, username, cmd, param);
+    string ctrl_message_serialized = serialize_object(ctrl_message);
 
     //TODO how we serialize a class of our own ??
 
 
-    send(sock_tcp, input.c_str(), input.size(), 0);
+    send(sock_tcp, ctrl_message_serialized.c_str(), ctrl_message_serialized.size(), 0);
     valread = read(sock_tcp, buffer, 1024);
     string reply = string(buffer, valread);
 
@@ -214,14 +223,16 @@ void Client::sendCommand(const string& input) {
 }
 
 void Client::list_groups(const string& reply) {
-    std::list<string> groupNames = deserialize_list(reply);
-    if (groupNames.empty()) {
-        cout << "No groups have been created so far" << endl;
-    } else {
-        for (const auto& groupName: groupNames) {
-            cout << groupName << endl;
-        }
-    }
+    cout << "List of groups received!" << endl;
+
+//    list<string> groupNames = deserialize_object<list<string> >(reply);
+//    if (groupNames.empty()) {
+//        cout << "No groups have been created so far" << endl;
+//    } else {
+//        for (const auto& groupName: groupNames) {
+//            cout << groupName << endl;
+//        }
+//    }
 }
 
 void Client::list_members(const string& reply) {

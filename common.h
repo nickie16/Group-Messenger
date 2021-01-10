@@ -6,9 +6,11 @@
 #include <map>
 #include <list>
 #include <sstream>
+#include <memory>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/list.hpp>
 #include <cereal/types/string.hpp>
+#include <cereal/types/memory.hpp>
 
 using std::map;
 using std::string;
@@ -16,6 +18,33 @@ using std::list;
 
 enum controlMessageType { register_client, list_groups, list_members, join_group,
         exit_group, quit};
+
+template <typename T>
+string serialize_object(T object){
+
+    std::stringstream ss;
+    cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
+
+    oarchive << object; // Write the data to the archive
+
+    return ss.str();
+}
+
+template <typename T>
+T deserialize_object(const string& reply){
+
+    std::stringstream ss;
+    ss.str(reply);
+
+    cereal::BinaryOutputArchive iarchive(ss); // Create an output archive
+    //std::unique_ptr<T> deserialized_message(nullptr);
+    T deserialized_message;
+    iarchive(deserialized_message); // read the data from the archive
+
+    return deserialized_message;
+}
+
+
 
 //map<string, controlMessageType> message_type_map = {
 //        {"!r", register_client},
