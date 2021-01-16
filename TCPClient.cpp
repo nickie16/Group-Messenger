@@ -92,29 +92,26 @@ void Client::sendUdpMessage(const ClientEntry& client_entry, const string& messa
     cln_addr.sin_addr.s_addr = inet_addr(client_entry.getIp().c_str());
     cln_addr.sin_port = htons(client_entry.getPort());
 
-    // TODO create and sent GroupMessage
-
-    sendto(sock_udp_send, message.c_str(), message.size(),MSG_CONFIRM, (const struct sockaddr *) &cln_addr,
-           sizeof(cln_addr));
-
-    cout << "Message sent!" << endl;
+    GroupMessage group_message(username, message);
+    string serialized_message = serialize_object(group_message);
+    sendto(sock_udp_send, serialized_message.c_str(), serialized_message.size(),MSG_CONFIRM,
+           (const struct sockaddr *) &cln_addr,sizeof(cln_addr));
 }
 
 void Client::receive_udp() {
 
     valread_udp = read(sock_udp_recv, buffer_udp, sizeof(buffer));
 
-    // TODO receive GroupMessage message
-
     if (valread_udp >= 0) {
-        cout << "Values read: " << valread_udp << endl;
         string reply = string(buffer_udp, valread_udp);
+        GroupMessage group_message = deserialize_object<GroupMessage>(reply);
 
-        cout << reply << endl;
+        cout << endl << "in " << currentGroup.getName() << ' ' << group_message.getUsername() << " says: " <<
+            group_message.getMessage() << endl;
 
         // TODO implement FIFO and Total Ordering
     } else {
-        cout << "problem" << endl;
+        cout << "Issue" << endl;
     }
 }
 
@@ -260,7 +257,6 @@ void Client::set_group(string group_name) {
 }
 
 void Client::sendMessage(string message) {
-    cout << "Start sending message" << endl;
 
     auto current_group_client_entries = currentGroup.getMembers();
     for (auto client_entry: current_group_client_entries){

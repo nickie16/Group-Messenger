@@ -75,6 +75,7 @@ int main(int argc, char const *argv[]) {
 //    cout << ip << endl;
     client->init();
     client->start_udp_thread(should_thread_exit);
+    // TODO create a thread to send a hearbeat in order to implement a fault checking mechanism
 
     cout << '[' << username << ']' << '>';
     getline(cin, input);
@@ -89,7 +90,6 @@ int main(int argc, char const *argv[]) {
         }
         cout << '[' << username << ']' << '>';
         getline(cin, input);
-        cout << input << endl;
     }
     client->quit();
     client->stop_udp_thread(should_thread_exit);
