@@ -2,10 +2,10 @@
 #include <iostream>
 #include <atomic>
 #include "TCPClient.h"
-
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <boost/algorithm/string/predicate.hpp>
 
 #define PORT 8085
 #define SERVER_ADDR "127.0.0.1"
@@ -52,7 +52,6 @@ void get_ip(char* buffer){
 }
 
 void check_input(string input){
-    // TODO validate input
     return ;
 }
 
@@ -79,14 +78,12 @@ int main(int argc, char const *argv[]) {
 
     cout << '[' << username << ']' << '>';
     getline(cin, input);
-    cout << input << endl;
     while (input != "!q") {
         // check_input(input);
         if (input.find('!') == 0) { //  boost::starts_with(input,'!')
 
             cout << "Command Mode..." << endl;
-            client->sendCommand(input);
-
+            client->process_command(input);
         } else {
             client->sendMessage(input);
         }

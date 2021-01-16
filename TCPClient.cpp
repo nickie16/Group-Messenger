@@ -7,16 +7,15 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <list>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/list.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <utility>
-#include<thread>
+#include <thread>
 #include <csignal>
 #include <atomic>
 #include "TCPClient.h"
 #include "ControlMessage.h"
 #include "GroupMessage.h"
+#include "Group.h"
 
 
 #define PORT 8091
@@ -29,16 +28,6 @@ using std::string;
 using std::getline;
 using std::list;
 
-list<string> deserialize_list(const string& reply){
-    std::stringstream out;
-    out.str(reply);
-    list<string> result_list;
-    boost::archive::binary_iarchive ia(out);
-    ia >> result_list;
-    return result_list;
-}
-
-
 
 Client::Client(string ip_addr, int netport, string name) {
 
@@ -46,7 +35,7 @@ Client::Client(string ip_addr, int netport, string name) {
     port = netport;
     username = std::move(name);
 
-    cout << "Creating client with name " << username << " in address " << ip << ", port " << port << "." << endl;
+    cout << "Creating client with name " << username << " in ip " << ip << ", port " << port << "." << endl;
 }
 
 Client::~Client() {
@@ -80,10 +69,10 @@ void Client::init_udp() {
     }
 
     cln_addr.sin_family = AF_INET;
-    cln_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // inet_addr("127.0.0.1");
+    cln_addr.sin_addr.s_addr = inet_addr(ip.c_str()); // inet_addr("127.0.0.1");
     cln_addr.sin_port = htons(port);
 
-    // Forcefully attaching socket to port
+    // Forcefully attaching receiving socket to port
     if (bind(sock_udp_recv, (struct sockaddr *) &cln_addr, sizeof(cln_addr)) < 0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
@@ -97,32 +86,35 @@ void Client::init_udp() {
 
 }
 
-void Client::sendUdpMessage(const string& message) {
+void Client::sendUdpMessage(const ClientEntry& client_entry, const string& message) {
 
     cln_addr.sin_family = AF_INET;
-    cln_addr.sin_addr.s_addr = INADDR_ANY; // TODO fill in address and port of each client
-    cln_addr.sin_port = htons(8084);
+    cln_addr.sin_addr.s_addr = inet_addr(client_entry.getIp().c_str());
+    cln_addr.sin_port = htons(client_entry.getPort());
 
-    sendto(sock_udp_send, message.c_str(), message.size(),
-           MSG_CONFIRM, (const struct sockaddr *) &cln_addr,
+    // TODO create and sent GroupMessage
+
+    sendto(sock_udp_send, message.c_str(), message.size(),MSG_CONFIRM, (const struct sockaddr *) &cln_addr,
            sizeof(cln_addr));
 
     cout << "Message sent!" << endl;
-
 }
 
 void Client::receive_udp() {
 
-    valread_udp = read(sock_udp_recv, buffer_udp, 1024);
+    valread_udp = read(sock_udp_recv, buffer_udp, sizeof(buffer));
+
+    // TODO receive GroupMessage message
+
     if (valread_udp >= 0) {
         cout << "Values read: " << valread_udp << endl;
         string reply = string(buffer_udp, valread_udp);
 
         cout << reply << endl;
 
-        // TODO figure out source of the message
         // TODO implement FIFO and Total Ordering
-
+    } else {
+        cout << "problem" << endl;
     }
 }
 
@@ -135,7 +127,6 @@ void Client::start_udp_thread(std::atomic<bool>& should_thread_exit) {
         while(!(*should_thread_exit)) {
             t->receive_udp();
         }
-
     };
 
     thread_udp = std::thread(udp_loop, this, &should_thread_exit);
@@ -173,71 +164,67 @@ void Client::register_to_server() {
 
     //std::unique_ptr<ControlMessage> ctrl_message( new ControlMessage(0, username, "!r", ip + ":" + std::to_string(port)));
 
-    ControlMessage ctrl_message(0, username, "!r", ip + ":" + std::to_string(port) );
+    ControlMessage ctrl_message(id, username, "!r", ip + ":" + std::to_string(port) );
+    cout << "Id: "<< ctrl_message.getId() << endl;
     string ctrl_message_serialized = serialize_object(ctrl_message);
 
     send(sock_tcp, ctrl_message_serialized.c_str(), ctrl_message_serialized.size(), 0);
-    valread = read(sock_tcp, buffer, 1024);
+    valread = read(sock_tcp, buffer, sizeof(buffer));
     id = std::stoi(string(buffer, valread));
     cout << "Successfully registered to Server. Acquired id_user: " << id << endl;
 }
 
-void Client::sendCommand(const string& input) {
+void Client::process_command(const string& input) {
 
-    cout << "Start sending command message" << endl;
-    connect_to_server();
+    cout << "Start processing command message" << endl;
 
     int pos = input.find(' '); //TODO if no space what happens ?
     string cmd = input.substr(0, pos);
     string param = input.substr(pos + 1);
 
-    //controlMessageType command = message_type_map[cmd];
+    if (boost::starts_with(input,"!w")) {
+        set_group(param);
+    } else {
 
-    ControlMessage ctrl_message(id, username, cmd, param);
-    string ctrl_message_serialized = serialize_object(ctrl_message);
+        connect_to_server();
+        //controlMessageType command = message_type_map[cmd];
 
-    //TODO how we serialize a class of our own ??
+        ControlMessage ctrl_message(id, username, cmd, param);
+        string ctrl_message_serialized = serialize_object(ctrl_message);
 
+        send(sock_tcp, ctrl_message_serialized.c_str(), ctrl_message_serialized.size(), 0);
+        valread = read(sock_tcp, buffer, sizeof(buffer));
+        string reply = string(buffer, valread);
 
-    send(sock_tcp, ctrl_message_serialized.c_str(), ctrl_message_serialized.size(), 0);
-    valread = read(sock_tcp, buffer, 1024);
-    string reply = string(buffer, valread);
-
-    // TODO consider how control replies will be formed
-
-    // TODO implement for all possible commands
-    if (boost::starts_with(input, "!lg")) {
-        list_groups(reply);
+        if (boost::starts_with(input, "!lg")) {
+            list_groups(reply);
+        } else if (boost::starts_with(input, "!lm")) {
+            list_members(reply);
+        } else if (boost::starts_with(input, "!j")) {
+            join_group(reply);
+        } else if (boost::starts_with(input, "!e")) {
+            exit_group(reply);
+        } else
+            cout << reply << endl;
     }
-    else if (boost::starts_with(input, "!lm")) {
-        list_members(reply);
-    }
-    else if (boost::starts_with(input, "!j")) {
-        join_group(reply);
-    }
-    else if (boost::starts_with(input, "!e")) {
-        exit_group(reply);
-    }
-    else
-        cout << reply << endl;
 }
 
 void Client::list_groups(const string& reply) {
     cout << "List of groups received!" << endl;
 
-//    list<string> groupNames = deserialize_object<list<string> >(reply);
-//    if (groupNames.empty()) {
-//        cout << "No groups have been created so far" << endl;
-//    } else {
-//        for (const auto& groupName: groupNames) {
-//            cout << groupName << endl;
-//        }
-//    }
+    list<string> groupNames = deserialize_object<list<string> >(reply);
+    if (groupNames.empty()) {
+        cout << "No groups have been created so far" << endl;
+    } else {
+        for (const auto& groupName: groupNames) {
+            cout << groupName << endl;
+        }
+    }
 }
 
 void Client::list_members(const string& reply) {
     try {
-        std::list<string> memberNames = deserialize_list(reply);
+        list<string> memberNames = deserialize_object<list<string>>(reply);
         if (memberNames.empty()) {
             cout << "This group doesn't contain any member" << endl;
         } else {
@@ -246,39 +233,40 @@ void Client::list_members(const string& reply) {
             }
         }
     }
-    catch (boost::archive::archive_exception& e){
+    catch (cereal::Exception& e){
         cout << "Group does not exists!" << endl;
     }
 
 }
 
-void Client::join_group(const string& groupObject) { // TODO the whole group object is returned
+void Client::join_group(const string& group_serialized) {
+
+    Group group = deserialize_object<Group>(group_serialized);
+
+    std::pair<string, Group> pair(group.getName(), group);
+    groups.insert(pair);
 }
 
 void Client::exit_group(const string& group_name) {
 }
 
 void Client::quit() {
-    // TODO implement
+    // TODO send quiting to server
     cout << "Client with id_user " << id << "is exiting." << endl;
 }
 
-void Client::set_group(Group *group_name) {
-    currentGroup = group_name;
+void Client::set_group(string group_name) {
+    currentGroup = groups.at(group_name);
 }
 
-void Client::sendMessage(string msg) {
-    // TODO broadcast to all members of current group
+void Client::sendMessage(string message) {
     cout << "Start sending message" << endl;
 
-    //list<Client> t = currentGroup->getMembers();
-//    for (auto client: ){
-//        ;
-//    }
-
-    sendUdpMessage("Hello from nikmand");
+    auto current_group_client_entries = currentGroup.getMembers();
+    for (auto client_entry: current_group_client_entries){
+        sendUdpMessage(client_entry, message);
+    }
 }
-
 
 string Client::getIp() {
     return ip;
@@ -290,10 +278,6 @@ string Client::getUsername() {
 
 int Client::getPort() const {
     return port;
-}
-
-void Client::unicast(Client* t) {
-
 }
 
 void Client::signalHandler(int signum) {

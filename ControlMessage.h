@@ -12,17 +12,22 @@ using std::string;
 class ControlMessage{
 
 private:
-    int id_user;
+    int id_user{};
     string username;
     string messageType;
     string params;
 
+    friend class cereal::access;
+
+    template<class Archive>
+    void serialize(Archive &archive) {
+        archive( id_user, username, messageType, params );
+    }
+
 public:
-    ControlMessage(int idUser, const string &username, string messageType, const string &params);
+    ControlMessage(int idUser, const string username, string messageType, const string  params);
 
-    ControlMessage();
-
-    //ControlMessage();
+    ControlMessage() = default;
 
     const string &getParams() const;
 
@@ -40,21 +45,16 @@ public:
 
     void setMessageType(string messageType);
 
-    template<class Archive>
-    void serialize(Archive &archive) {
-        archive( id_user, username, messageType, params );
-    }
-
-    template <class Archive>
-    static void load_and_construct( Archive & ar, cereal::construct<ControlMessage> & construct )
-    {
-        int id_user;
-        string username;
-        string messageType;
-        string params;
-        ar( id_user, username, messageType,  params);
-        construct( id_user, username, messageType,  params ); // calls MyType( x )
-    }
+//    template <class Archive>
+//    static void load_and_construct( Archive & ar, cereal::construct<ControlMessage> & construct )
+//    {
+//        int id_user;
+//        string username;
+//        string messageType;
+//        string params;
+//        ar( id_user, username, messageType,  params);
+//        construct( id_user, username, messageType,  params ); // calls MyType( x )
+//    }
 
 };
 

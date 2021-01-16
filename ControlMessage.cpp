@@ -1,7 +1,7 @@
 #include "ControlMessage.h"
 
 // constructor using initializer list
-ControlMessage::ControlMessage(int idUser, const string &username, string messageType, const string &params)
+ControlMessage::ControlMessage(int idUser, string username, string messageType, string params)
         : id_user(idUser), username(username), messageType(messageType), params(params) {}
 
 const string &ControlMessage::getUsername() const {
@@ -35,7 +35,5 @@ int ControlMessage::getId() const {
 void ControlMessage::setId(int id) {
     ControlMessage::id_user = id;
 }
-
-ControlMessage::ControlMessage() {}
 
 //ControlMessage::ControlMessage() {}

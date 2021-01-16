@@ -24,19 +24,19 @@ string serialize_object(T object){
 
     std::stringstream ss;
     cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
-
-    oarchive << object; // Write the data to the archive
+    // PortableBinaryOutputArchive maybe needed
+    oarchive(object); // Write the data to the archive
 
     return ss.str();
 }
 
 template <typename T>
-T deserialize_object(const string& reply){
+T deserialize_object(string reply){
 
     std::stringstream ss;
-    ss.str(reply);
+    ss << reply;
 
-    cereal::BinaryOutputArchive iarchive(ss); // Create an output archive
+    cereal::BinaryInputArchive iarchive(ss); // Create an output archive
     //std::unique_ptr<T> deserialized_message(nullptr);
     T deserialized_message;
     iarchive(deserialized_message); // read the data from the archive

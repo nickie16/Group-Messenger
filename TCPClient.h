@@ -13,8 +13,10 @@
 #include <thread>
 #include <cerrno>
 #include "common.h"
+#include "ClientEntry.h"
+#include "Group.h"
 
-class Group;
+//class Group;
 
 using std::string;
 
@@ -26,13 +28,13 @@ private:
     int port, id{};
     int sock_tcp{}, sock_udp_recv{}, sock_udp_send{};
     int valread{}, valread_udp{};
-    Group *currentGroup{};
+    std::unordered_map<string, Group> groups;
+    Group currentGroup{};
     struct sockaddr_in serv_addr{}, cln_addr{};
     char buffer[1024] = {0}, buffer_udp[1024] = {0};
-    void unicast(Client* t);
     std::thread thread_udp;
     static void signalHandler(int signum);
-    void sendUdpMessage(const string& message);
+    void sendUdpMessage(const ClientEntry& client_entry, const string& message);
 
 public:
     Client(string ip_addr, int netport, string name);
@@ -69,11 +71,11 @@ public:
 
     void quit();
 
-    void set_group(Group *group_name);
+    void set_group(string group_name);
 
-    void sendCommand(const string& input);
+    void process_command(const string& input);
 
-    void sendMessage(string msg);
+    void sendMessage(string message);
 
     // send to client method? will it be useful?
 };

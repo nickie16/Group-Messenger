@@ -7,13 +7,10 @@
 #include <iostream>
 #include <arpa/inet.h>
 #include <unordered_map>
-#include "Group.h"
 #include <list>
 #include <sstream>
 #include <atomic>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/list.hpp> // Provides an implementation of serialize for std::list
+#include "Group.h"
 #include "common.h"
 #include "ControlMessage.h"
 
@@ -25,13 +22,6 @@ using std::endl;
 using std::string;
 
 
-string serialize_list(const list<string>& slist){
-    std::stringstream nameListStream;
-    boost::archive::binary_oarchive oa(nameListStream);
-    oa << slist;
-    return nameListStream.str();
-}
-
 class Server {
 
 private:
@@ -40,10 +30,8 @@ private:
     struct sockaddr_in address{};
     int addrlen = sizeof(address);
     list<Group*> chatRooms;
-    list<Group*>::iterator it;
-    std::unordered_map<int, string> unmap;
+    std::unordered_map<int, ClientEntry> client_enties;
     int num_of_clients = 0;
-    ClientEntry *t{};
 
     Server() = default;
 
@@ -107,29 +95,29 @@ public:
 
             ControlMessage ctrl_message = deserialize_object<ControlMessage>(input);
 
-//            int pos = input.find(' ');
-//            string cmd = input.substr(0, pos);
-//            string param = input.substr(pos + 1);
-
+            // TODO if command is not register check if user is registered
+            int user_id = ctrl_message.getId();
+            string username = ctrl_message.getUsername();
             string cmd = ctrl_message.getMessageType();
             string param = ctrl_message.getParams();
-            cout << "Command received was: "  << input << endl;
+            //cout << "Command received was: "  << input << endl;
             cout << cmd << endl;
             cout << param << endl;
             // TODO command codes should be moved as constants in another file
-            // TODO implement leave client command
             if (cmd == "!lg")
                 list_groups();
             else if (cmd == "!lm")
                 list_members(param);
             else if (cmd == "!j")
-                join_group(param);
+                join_group(param, user_id);
             else if (cmd == "!r")
-                registerClient(param);
+                registerClient(param, username);
             else if (cmd == "!e")
-                quit_group(param);
+                exit_group(param, user_id);
+            else if (cmd == "!q")
+                quit_messenger(user_id);
             else
-                cout << "Unsupported Command received" << endl; // TODO implement unsupported command
+                cout << "Unsupported Command received" << endl; // TODO implement reply unsupported command
            // cout << "Reply sent" << endl;
 
             // closing the tcp connection as it is expensive to maintain
@@ -140,12 +128,18 @@ public:
         }
     }
 
-    void registerClient(const string& client_info) {
+    void registerClient(const string& client_info, string username) {
         cout << "Registering new Client" << endl;
 
         int id = ++num_of_clients;
-        std::pair<int, string> pair(id, client_info);
-        unmap.insert(pair);
+        int pos = client_info.find(':');
+        string ip = client_info.substr(0, pos);
+        int port = stoi(client_info.substr(pos + 1));
+
+        ClientEntry client_entry = ClientEntry(id, username, ip, port);
+
+        std::pair<int, ClientEntry> pair(id, client_entry);
+        client_enties.insert(pair);
         string ids = std::to_string(id);
         send(client_socket, ids.c_str(), ids.size(), 0);
     }
@@ -154,8 +148,8 @@ public:
         cout << "Fetching groups" << endl;
 
         list<string> nameList;
-        for (it = chatRooms.begin(); it != chatRooms.end(); it++) {
-            nameList.push_back((*it)->getName());
+        for (auto & chatRoom : chatRooms) {
+            nameList.push_back(chatRoom->getName());
         }
         string nameListSerialized = serialize_object(nameList);
         send(client_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
@@ -167,17 +161,17 @@ public:
         group = find_group(groupName);
         if (group){
             list<string> nameList;
-            for (auto v : group->getMembers()) {
+            for (const auto& v : group->getMembers()) {
                 nameList.push_back(v.getUsername());
             }
             cout << "Number of members on the requested group: " << nameList.size() << endl;
-            string nameListSerialized = serialize_list(nameList);
+            string nameListSerialized = serialize_object(nameList);
             send(client_socket, nameListSerialized.c_str(), nameListSerialized.size(), 0);
         }
         // NOTE client handles the case when group is not present
     }
 
-    void join_group(const string& groupName) {
+    void join_group(const string& groupName, int user_id) {
         Group *group;
 
         group = find_group(groupName);
@@ -186,18 +180,19 @@ public:
             chatRooms.push_back(group);
         }
 
-        //TODO add user with correct ip:port:username to group's member list
-        t = new ClientEntry(0, "nikmand", "127.0.0.1", 4340);
-        group->addMember(*t);
-        group->printMembers();
+        ClientEntry t = client_enties.at(user_id);
+        group->addMember(t);
+
+        string group_serialized = serialize_object(*group);
+        send(client_socket, group_serialized.c_str(), group_serialized.size(), 0);
     }
 
-    void quit_group(const string& groupName) {
+    void exit_group(const string& groupName, int user_id) {
         Group *group;
 
         group = find_group(groupName);
         if (group){
-            group->removeMember("nikmand"); // TODO use correct username
+            group->removeMember(user_id);
         }
     }
 
@@ -205,11 +200,11 @@ public:
         Group *group = nullptr;
         cout << "Searching if requested group exists" << endl;
 
-        for (it = chatRooms.begin(); it != chatRooms.end(); it++) { //TODO check why auto instead of iterator
-            if ((*it)->getName() == groupName) {
+        for (auto & chatRoom : chatRooms) {
+            if (chatRoom->getName() == groupName) {
                 cout << "Requested group found" << endl;
 
-                group = (*it);
+                group = chatRoom;
                 return group;
             }
         }
@@ -218,9 +213,15 @@ public:
         return group;
     }
 
-    void quit(int id) {
-        // TODO delete id_user from unmap
-        // TODO search in every group and delete client
+    void quit_groups(int user_id) {
+        for(auto group : chatRooms){
+            group->removeMember(user_id);
+        }
+    }
+
+    void quit_messenger(int user_id) {
+        quit_groups(user_id);
+        client_enties.erase (user_id);
         // TODO update the group list of other clients, is it possible?
     }
 };

@@ -7,17 +7,30 @@
 #include <string>
 #include <list>
 #include <atomic>
+#include "common.h"
 #include "ClientEntry.h"
 
 using std::list;
 using std::string;
+using std::cout;
 
 class Group {
 
 private:
     string name;
-    list<ClientEntry> members; // TODO maybe a hashset instead of a list?
+    list<ClientEntry> members; // TODO maybe a hashmap instead of a list? indeed it will be useful
+
+    friend class cereal::access;
+
+    template<class Archive>
+    void serialize(Archive &archive) {
+        archive( name, members);
+    }
+
+
 public:
+    Group() = default;
+
     explicit Group(string group);
 
     ~Group();
@@ -30,7 +43,9 @@ public:
 
     void printMembers();
 
-    void removeMember(const string& member_name);
+    void removeMember(int user_id);
+
+    void removeMemberByName(const string& member_name);
 };
 
 #endif

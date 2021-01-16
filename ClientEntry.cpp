@@ -1,9 +1,8 @@
 #include "ClientEntry.h"
 
 
-ClientEntry::ClientEntry(int id, const string &username, const string &address, int port) : id(id), username(username),
-                                                                                            address(address),
-                                                                                            port(port) {}
+ClientEntry::ClientEntry(int id, const string &username, const string &ip, int port) : id(id), username(username),
+                                                                                            ip(ip), port(port) {}
 
 int ClientEntry::getId() const {
     return id;
@@ -21,12 +20,12 @@ void ClientEntry::setUsername(const string &username) {
     ClientEntry::username = username;
 }
 
-const string &ClientEntry::getAddress() const {
-    return address;
+const string &ClientEntry::getIp() const {
+    return ip;
 }
 
-void ClientEntry::setAddress(const string &address) {
-    ClientEntry::address = address;
+void ClientEntry::setIp(const string &address) {
+    ClientEntry::ip = address;
 }
 
 int ClientEntry::getPort() const {
